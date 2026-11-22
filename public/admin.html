@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin | SHRI RAM INDIAN STORE</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="wrap">
+    <div class="page-title"><h1>Admin Panel</h1></div>
+
+    <form class="box" id="loginBox" style="max-width:420px;margin:20px 0">
+      <h2>Login</h2>
+      <div class="field"><label for="token">Admin password (ADMIN_TOKEN)</label><input id="token" type="password" autocomplete="current-password"></div>
+      <div class="form-error" id="loginErr"></div>
+      <button class="btn maroon" type="submit">Login</button>
+      <p class="hint">Yeh panel tabhi chalega jab database setup ho chuka ho (SETUP.md Step 9 aur 10).</p>
+    </form>
+
+    <div id="panel" hidden>
+      <div class="admin-bar">
+        <button id="tabP" class="active">Products</button>
+        <button id="tabO">Orders</button>
+        <button id="logout" style="margin-left:auto">Logout</button>
+      </div>
+
+      <section id="secP">
+        <form class="box" id="pForm" style="margin-bottom:16px">
+          <h2 id="pFormTitle">Naya product jodein</h2>
+          <input type="hidden" id="pId">
+          <div class="form-grid">
+            <div class="field full"><label>Naam *</label><input id="pName" required></div>
+            <div class="field"><label>Category *</label><select id="pCat"></select></div>
+            <div class="field"><label>Price (₹) *</label><input id="pPrice" type="number" min="1" required></div>
+            <div class="field"><label>MRP / cut price (₹, optional)</label><input id="pMrp" type="number" min="0"></div>
+            <div class="field"><label>Image link ya /images/photo.jpg</label><input id="pImage"></div>
+            <div class="field full"><label>Description</label><textarea id="pDesc" rows="3"></textarea></div>
+            <div class="field full checks">
+              <label><input type="checkbox" id="pStock" checked> Stock me hai</label>
+              <label><input type="checkbox" id="pFeat"> Home page par dikhayein</label>
+              <label><input type="checkbox" id="pActive" checked> Site par dikhayein</label>
+            </div>
+          </div>
+          <div class="form-error" id="pErr"></div>
+          <button class="btn maroon" type="submit" id="pSave">Save karein</button>
+          <button class="btn" type="button" id="pCancel" hidden>Edit cancel</button>
+        </form>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Naam</th><th>Category</th><th>Price</th><th>Status</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div>
+      </section>
+
+      <section id="secO" hidden>
+        <div id="oList"></div>
+      </section>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

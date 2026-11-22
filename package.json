@@ -1,0 +1,12 @@
+{
+  "name": "shri-ram-indian-store",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npx wrangler pages dev public",
+    "db:schema:local": "npx wrangler d1 execute shriram-store-db --local --file=db/schema.sql",
+    "db:seed:local": "npx wrangler d1 execute shriram-store-db --local --file=db/seed.sql",
+    "db:schema:remote": "npx wrangler d1 execute shriram-store-db --remote --file=db/schema.sql",
+    "db:seed:remote": "npx wrangler d1 execute shriram-store-db --remote --file=db/seed.sql"
+  }
+}

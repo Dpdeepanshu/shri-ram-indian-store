@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /api/
+
+# REPLACE: apna asli site link likho
+Sitemap: https://shriramindianstore.pages.dev/sitemap.xml

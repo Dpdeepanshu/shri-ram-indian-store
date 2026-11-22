@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact Us | SHRI RAM INDIAN STORE</title>
+  <meta name="description" content="SHRI RAM INDIAN STORE se sampark karein: phone, WhatsApp, email aur address.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="wrap">
+    <div class="page-title"><h1>Humse sampark karein</h1></div>
+    <div class="contact-grid" style="margin:20px 0 40px">
+      <div class="box">
+        <h2>Hamari details</h2>
+        <p><b>Address:</b> <span data-cfg="address"></span></p><br>
+        <p><b>Phone / WhatsApp:</b> <a data-cfg="phoneDisplay" data-link="tel" href="#"></a></p><br>
+        <p><b>Email:</b> <a data-cfg="email" data-link="mail" href="#"></a></p><br>
+        <p><b>Samay:</b> <span data-cfg="hours"></span></p>
+      </div>
+      <form class="box" id="contactForm">
+        <h2>Message bhejein (WhatsApp par)</h2>
+        <div class="field"><label for="cname">Aapka naam</label><input id="cname" required></div>
+        <div class="field"><label for="cmsg">Aapka message</label><textarea id="cmsg" rows="4" required></textarea></div>
+        <button class="btn wa" type="submit" style="width:100%">💬 WhatsApp par bhejein</button>
+      </form>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    document.getElementById("contactForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var cfg = window.STORE_CONFIG;
+      var msg = "Namaste, main " + document.getElementById("cname").value.trim() + ". " + document.getElementById("cmsg").value.trim();
+      window.open("https://wa.me/" + cfg.whatsappNumber + "?text=" + encodeURIComponent(msg), "_blank");
+    });
+  </script>
+</body>
+</html>
