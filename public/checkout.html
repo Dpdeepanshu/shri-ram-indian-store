@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cart &amp; Checkout | SHRI RAM INDIAN STORE</title>
   <meta name="robots" content="noindex">
+  <meta property="og:image" content="https://shri-ram-indian-store.pages.dev/images/logo.png">
   <link rel="icon" href="favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="css/style.css">
@@ -27,11 +28,24 @@
           <h2>Order summary</h2>
           <div id="summary"></div>
         </div>
+        <div class="box gate" id="loginGate" hidden>
+          <h2>Login to place your order</h2>
+          <p>Please log in to continue. New here? Create a free account in a minute. Your cart will stay saved.</p>
+          <p style="margin-top:12px"><a class="btn navy" href="login.html?next=checkout.html&amp;why=order">Login</a><a class="btn" href="login.html?next=checkout.html&amp;why=order&amp;mode=signup">Sign up</a></p>
+        </div>
         <form class="box" id="orderForm" novalidate>
           <h2>Delivery details</h2>
-          <div class="field"><label for="name">Full name *</label><input id="name" name="name" autocomplete="name" required></div>
+          <div class="pay-opts" id="typeOpts" role="radiogroup" aria-label="Customer type">
+            <label class="pay-opt"><input type="radio" name="ctype" value="retail" checked><span><b>Retail customer</b><small>Personal purchase. Normal invoice.</small></span></label>
+            <label class="pay-opt"><input type="radio" name="ctype" value="business"><span><b>Business customer (GST)</b><small>GST invoice in your business name with your GSTIN.</small></span></label>
+          </div>
+          <div id="bizBox" hidden>
+            <div class="field"><label for="bizName">Business name *</label><input id="bizName" name="bizName" autocomplete="organization" maxlength="100"></div>
+            <div class="field"><label for="gstin">GSTIN *</label><input id="gstin" name="gstin" maxlength="15" autocapitalize="characters" spellcheck="false" placeholder="15-character GSTIN"><small class="hint" id="gstMsg" style="margin:0"></small></div>
+          </div>
+          <div class="field"><label for="name" id="nameLbl">Full name *</label><input id="name" name="name" autocomplete="name" required></div>
           <div class="field"><label for="phone">Mobile number *</label><input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="10-digit number" required></div>
-          <div class="field"><label for="address">Full address *</label><textarea id="address" name="address" rows="3" autocomplete="street-address" required></textarea></div>
+          <div class="field"><label for="address" id="addrLbl">Full address *</label><textarea id="address" name="address" rows="3" autocomplete="street-address" required></textarea></div>
           <div class="field"><label for="city">City / Town *</label><input id="city" name="city" autocomplete="address-level2" required></div>
           <div class="field"><label for="state">State *</label><select id="state" name="state" autocomplete="address-level1" required></select></div>
           <div class="field"><label for="pincode">PIN code *</label><input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" placeholder="6-digit PIN code" required></div>
@@ -53,6 +67,7 @@
   <div id="site-footer"></div>
   <script src="js/config.js"></script>
   <script src="js/common.js"></script>
+  <script src="js/invoice.js"></script>
   <script src="js/checkout.js"></script>
 </body>
 </html>

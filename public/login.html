@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login / Sign up | SHRI RAM INDIAN STORE</title>
+  <meta name="robots" content="noindex">
+  <meta property="og:image" content="https://shri-ram-indian-store.pages.dev/images/logo.png">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="wrap">
+    <div class="auth-card box">
+      <div class="brand-top"><img src="images/logo.png" alt="SHRI RAM INDIAN STORE logo" width="84" height="84"></div>
+      <h1 id="title">Login</h1>
+      <div class="auth-tabs" id="tabs" role="tablist"><button type="button" data-m="login" class="on">Login</button><button type="button" data-m="signup">Sign up</button></div>
+      <div class="notice" id="why" hidden>Please log in (or create a free account) to place your order. Your cart is saved.</div>
+
+      <form id="fLogin" novalidate>
+        <div class="field"><label for="lEmail">Email</label><input id="lEmail" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="lPass">Password</label><input id="lPass" type="password" autocomplete="current-password" required></div>
+        <div class="form-error" data-err></div>
+        <button class="btn navy" type="submit">Login</button>
+        <div class="auth-links"><a href="#" data-go="forgot">Forgot password?</a><a href="#" data-go="signup">Create account</a></div>
+      </form>
+
+      <form id="fSignup" novalidate hidden>
+        <div class="field"><label for="sName">Full name</label><input id="sName" autocomplete="name" required></div>
+        <div class="field"><label for="sEmail">Email (we send a verification code here)</label><input id="sEmail" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="sPhone">Mobile number</label><input id="sPhone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="10-digit number" required></div>
+        <div class="field"><label for="sPass">Password (min 8 characters)</label><input id="sPass" type="password" autocomplete="new-password" required></div>
+        <div class="form-error" data-err></div>
+        <button class="btn navy" type="submit">Create account</button>
+        <p class="hint">A 6-digit code will be sent to your email to verify it. It is free.</p>
+      </form>
+
+      <form id="fVerify" novalidate hidden>
+        <p>We sent a 6-digit code to <b id="vMail"></b>. Enter it below.</p>
+        <div class="field"><label for="vCode">Verification code</label><input id="vCode" class="otp-in" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></div>
+        <div class="ok-msg" data-ok></div>
+        <div class="form-error" data-err></div>
+        <button class="btn navy" type="submit">Verify</button>
+        <div class="auth-links"><a href="#" id="vResend">Resend code</a><a href="#" data-go="login">Back to login</a></div>
+      </form>
+
+      <form id="fForgot" novalidate hidden>
+        <p>Enter your account email. We will send a code to reset your password.</p>
+        <div class="field"><label for="fEmail">Email</label><input id="fEmail" type="email" autocomplete="email" required></div>
+        <div class="form-error" data-err></div>
+        <button class="btn navy" type="submit">Send code</button>
+        <div class="auth-links"><a href="#" data-go="login">Back to login</a><span></span></div>
+      </form>
+
+      <form id="fReset" novalidate hidden>
+        <p>Enter the code sent to <b id="rMail"></b> and choose a new password.</p>
+        <div class="field"><label for="rCode">Code</label><input id="rCode" class="otp-in" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></div>
+        <div class="field"><label for="rPass">New password (min 8 characters)</label><input id="rPass" type="password" autocomplete="new-password" required></div>
+        <div class="ok-msg" data-ok></div>
+        <div class="form-error" data-err></div>
+        <button class="btn navy" type="submit">Change password and login</button>
+        <div class="auth-links"><a href="#" id="rResend">Resend code</a><a href="#" data-go="login">Back to login</a></div>
+      </form>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

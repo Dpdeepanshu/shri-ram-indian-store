@@ -13,6 +13,12 @@
 
   $("state").innerHTML = `<option value="">Select state</option>` + S.STATES.map((x) => `<option>${esc(x)}</option>`).join("");
   const useDb = !!cfg.useDatabase;
+  // Order se pehle login zaroori (database ON ho to)
+  const user = useDb ? await S.me() : null;
+  const needLogin = useDb && !user;
+  $("loginGate").hidden = !needLogin;
+  $("orderForm").hidden = needLogin;
+  if (user) { $("name").value = user.name || ""; $("phone").value = user.phone || ""; }
   // Database ON: "Place order" (WhatsApp ke bina) + optional WhatsApp button. OFF: sirf WhatsApp.
   $("placeBtn").textContent = useDb ? "Place order" : "Place order on WhatsApp";
   $("placeBtn").className = "btn " + (useDb ? "navy" : "wa");
@@ -20,6 +26,27 @@
   $("placeHint").textContent = useDb
     ? "Choose \"Place order\" and we will confirm it by phone or WhatsApp. No WhatsApp chat is needed. You get an invoice right after ordering. We never ask for card numbers, PINs or OTPs."
     : "Your order details open in WhatsApp. We confirm the order, and the payment details if needed, over WhatsApp. We never ask for card numbers, PINs or OTPs.";
+  // Retail / Business: business me business name + GSTIN maange jaate hain, labels badal jaate hain
+  const ctype = () => (document.querySelector('input[name="ctype"]:checked') || {}).value || "retail";
+  function applyType() {
+    const biz = ctype() === "business";
+    $("bizBox").hidden = !biz;
+    $("nameLbl").textContent = biz ? "Contact person name *" : "Full name *";
+    $("addrLbl").textContent = biz ? "Delivery address *" : "Full address *";
+    $("bizName").required = biz; $("gstin").required = biz;
+  }
+  function gstHint() {
+    const g = $("gstin").value, m = $("gstMsg");
+    if (!g) { m.textContent = ""; return; }
+    if (g.length < 15) { m.textContent = g.length + " / 15 characters"; m.style.color = ""; return; }
+    const ok = S.invoice.gstinValid(g);
+    m.textContent = ok ? "GSTIN looks valid (" + S.invoice.GST_STATES[g.slice(0, 2)] + ")" : "This GSTIN looks invalid. Please check it.";
+    m.style.color = ok ? "var(--green)" : "var(--red)";
+  }
+  $("typeOpts").addEventListener("change", applyType);
+  $("gstin").addEventListener("input", (e) => { const g = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, "").slice(0, 15); if (g !== e.target.value) e.target.value = g; gstHint(); });
+  applyType();
+
   let mode = useDb ? "db" : "wa";
   $("placeBtn").addEventListener("click", () => (mode = useDb ? "db" : "wa"));
   $("waBtn").addEventListener("click", () => (mode = "wa"));
@@ -113,7 +140,7 @@
   function buildMessage(o) {
     const lines = o.lines.map((l) => `• ${l.name} x ${l.qty} = ${S.money(l.price * l.qty)}`).join("\n");
     const paid = o.payment === "Cash on Delivery" ? "pay on delivery" : "payment pending, details to be confirmed";
-    return `*New order: ${cfg.storeName}*\nOrder No: ${o.no}\n\n${lines}\n\nSubtotal: ${S.money(o.subtotal)}\nShipping: ${o.shipping ? S.money(o.shipping) : "Free"}\n*Total: ${S.money(o.total)}*\n\nPayment method: ${o.payment} (${paid})\n\nName: ${o.name}\nMobile: ${o.phone}\nAddress: ${o.address}, ${o.city}, ${o.state} - ${o.pincode}${o.notes ? "\nNote: " + o.notes : ""}`;
+    return `*New order: ${cfg.storeName}*\nOrder No: ${o.no}\n\n${lines}\n\nSubtotal: ${S.money(o.subtotal)}\nShipping: ${o.shipping ? S.money(o.shipping) : "Free"}\n*Total: ${S.money(o.total)}*\n\nPayment method: ${o.payment} (${paid})\n\n${o.customerType === "business" ? `Customer type: Business (GST invoice)\nBusiness: ${o.biz.name}\nGSTIN: ${o.biz.gstin}\nContact person: ` : "Name: "}${o.name}\nMobile: ${o.phone}\nAddress: ${o.address}, ${o.city}, ${o.state} - ${o.pincode}${o.notes ? "\nNote: " + o.notes : ""}`;
   }
   const waUrl = (o) => `https://wa.me/${cfg.whatsappNumber}?text=${encodeURIComponent(buildMessage(o))}`;
 
@@ -141,8 +168,9 @@
         <tr><td>Shipping</td><td>${o.shipping ? S.money(o.shipping) : "Free"}</td></tr>
         <tr><td><b>Total</b></td><td><b>${S.money(o.total)}</b></td></tr>
       </table>
+      ${o.customerType === "business" && o.biz ? `<p class="hint">GST invoice: ${esc(o.biz.name)} (GSTIN ${esc(o.biz.gstin)})</p>` : ""}
       <p class="hint">Delivering to: ${esc(o.name)}, ${esc(o.phone)}, ${esc(o.address)}, ${esc(o.city)}, ${esc(o.state || "")} - ${esc(o.pincode)}</p>
-      <div class="btns-col"><a class="btn" href="shop.html" id="newOrder">Continue shopping</a></div>`;
+      <div class="btns-col">${useDb ? '<a class="btn navy" href="account.html">View my order history</a>' : ""}<a class="btn" href="shop.html" id="newOrder">Continue shopping</a></div>`;
     $("done").hidden = false;
     $("newOrder").addEventListener("click", clearLast);
     window.scrollTo(0, 0);
@@ -155,11 +183,12 @@
       try {
         const r = await fetch("/api/orders", {
           method: "POST", headers: { "content-type": "application/json" }, signal: ctl.signal,
-          body: JSON.stringify({ orderNo: o.no, name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: o.notes, items: o.lines.map((l) => ({ id: l.id, qty: l.qty })) })
+          body: JSON.stringify({ orderNo: o.no, name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: o.notes, customerType: o.customerType, bizName: o.biz ? o.biz.name : "", gstin: o.biz ? o.biz.gstin : "", items: o.lines.map((l) => ({ id: l.id, qty: l.qty })) })
         });
         const d = await r.json().catch(() => ({}));
         if (r.ok && d.ok) return { ok: true, invoiceNo: d.invoiceNo || "" };
         if (r.status === 409 && d.error === "duplicate order") { o.no = orderNo(); continue; }
+        if (r.status === 401) return { ok: false, error: "login" };
         return { ok: false, error: d.error || "Error " + r.status };
       } catch (e) { return { ok: false, error: "network" }; }
       finally { clearTimeout(timer); }
@@ -170,6 +199,7 @@
   $("orderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (placing) return;
+    if (needLogin) { location.href = "login.html?next=checkout.html&why=order"; return; }
     if ($("company").value) return; // bot trap
     const t = totals();
     if (!t.lines.length) return;
@@ -179,8 +209,15 @@
     d.phone = S.normalizePhone(d.phone); $("phone").value = d.phone;
     d.pincode = d.pincode.replace(/\D/g, ""); $("pincode").value = d.pincode;
     d.payment = chosen();
+    d.type = ctype();
+    d.bizName = String($("bizName").value || "").trim().replace(/[ \t]+/g, " ");
+    d.gstin = String($("gstin").value || "").trim().toUpperCase();
 
-    if (d.name.length < 2) return fail("Please enter your name.", "name");
+    if (d.type === "business") {
+      if (d.bizName.length < 2) return fail("Please enter your business name.", "bizName");
+      if (!S.invoice.gstinValid(d.gstin)) return fail("Please enter a valid 15-character GSTIN, or choose Retail customer.", "gstin");
+    }
+    if (d.name.length < 2) return fail(d.type === "business" ? "Please enter the contact person name." : "Please enter your name.", "name");
     if (!/^[6-9]\d{9}$/.test(d.phone)) return fail("Please enter a valid 10-digit mobile number (it should start with 6, 7, 8 or 9).", "phone");
     if (d.address.length < 8) return fail("Please enter your full address (house no., street, area).", "address");
     if (d.city.length < 2) return fail("Please enter your city or town.", "city");
@@ -193,6 +230,7 @@
     const o = {
       no: orderNo(), ts: Date.now(), mode: sendMode === "db" ? "db" : "wa", payment: d.payment, name: d.name, phone: d.phone, address: d.address, city: d.city, state: d.state, pincode: d.pincode, notes: d.notes,
       subtotal: t.subtotal, shipping: t.shipping, total: t.total, invoiceNo: "",
+      customerType: d.type, biz: d.type === "business" ? { name: d.bizName, gstin: d.gstin } : null,
       lines: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, qty: l.qty, category: l.p.category }))
     };
 
@@ -209,6 +247,7 @@
       else if (sendMode === "db") { // WhatsApp ka backup nahi hai, isliye customer ko batao aur cart rehne do
         placing = false; $("placeBtn").disabled = false; $("waBtn").disabled = false;
         const m = saved.error || "";
+        if (m === "login") { location.href = "login.html?next=checkout.html&why=order"; return; }
         return fail(/out of stock/.test(m) ? "Sorry, " + m + ". Please remove it from the cart." : m === "network" ? "Could not reach the server. Please check your internet and try again, or use the WhatsApp button." : "We could not place your order right now. Please try again, or use the WhatsApp button.");
       }
     }

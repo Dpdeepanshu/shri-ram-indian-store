@@ -8,6 +8,17 @@
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
 
+/admin
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
+/login.html
+  X-Robots-Tag: noindex
+
+/account.html
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
 /invoice.html
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store

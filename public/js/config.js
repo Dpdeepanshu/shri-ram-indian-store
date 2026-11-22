@@ -48,6 +48,17 @@ window.STORE_CONFIG = {
   shippingHsn: "996812",                   // shipping charge ka SAC (courier)
   shippingGst: 18,
 
+  // ---- Invoice: payment details + signature / stamp (sirf invoice me dikhte hain) ----
+  // Retail customer ke invoice par UPI QR (COD / UPI), business customer ke invoice par bank details (NEFT / RTGS / IMPS).
+  // Checkout aur Payments page par bhi dikhana ho to upar wale upiId / upiQrImage / bank* me yahi details copy kar do.
+  invoiceUpiId: "Pos.11412817@indus",
+  invoiceUpiQr: "images/upi-qr.png",
+  invoiceBank: { accountName: "SHRI RAM INDIAN STORE", bank: "IndusInd Bank Ltd", account: "258318195522", ifsc: "INDB0000722", branch: "Jankipuram, Lucknow" },
+  invoiceSignature: "images/signature.png",  // authorised signatory ki signature (transparent PNG)
+  invoiceStamp: "images/stamp.png",          // store ka round stamp (transparent PNG)
+  signatoryName: "Himanshu Yadav",
+  invoiceBackdateDays: 365,                  // invoice date aaj se kitne din peeche tak badal sakte ho
+
   // ---- Shipping / Policy ----
   currency: "₹",
   freeShippingAbove: 999,
@@ -69,5 +80,6 @@ window.STORE_CONFIG = {
   ],
 
   // ---- Database ----
+  // true = login, order history, admin panel, database orders chalu. (SETUP.md Step 13 ke baad true rakho)
   useDatabase: true
 };

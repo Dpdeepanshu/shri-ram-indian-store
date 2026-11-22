@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin | SHRI RAM INDIAN STORE</title>
   <meta name="robots" content="noindex, nofollow">
+  <meta property="og:image" content="https://shri-ram-indian-store.pages.dev/images/logo.png">
   <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,23 +15,29 @@
   <main class="wrap">
     <div class="page-title"><h1>Admin Panel</h1></div>
 
-    <form class="box" id="loginBox" style="max-width:420px;margin:20px 0">
-      <h2>Login</h2>
-      <div class="field"><label for="token">Admin password (ADMIN_TOKEN)</label><input id="token" type="password" autocomplete="current-password"></div>
+    <form class="box auth-card" id="loginBox" style="margin:20px auto" novalidate>
+      <div class="brand-top"><img src="images/logo.png" alt="SHRI RAM INDIAN STORE logo" width="84" height="84"></div>
+      <h1>Admin login</h1>
+      <div class="field"><label for="user">Username</label><input id="user" autocomplete="username" autocapitalize="none" required></div>
+      <div class="field"><label for="token">Password</label><input id="token" type="password" autocomplete="current-password" required></div>
       <div class="form-error" id="loginErr"></div>
       <button class="btn navy" type="submit">Login</button>
-      <p class="hint">This panel works only after the database is set up (SETUP.md, steps 9 and 10).</p>
+      <p class="hint">Works only after the database is set up (SETUP.md).</p>
     </form>
 
     <div id="panel" hidden>
       <div class="admin-bar">
-        <button id="tabP" class="active">Products</button>
+        <button id="tabD" class="active">Dashboard</button>
+        <button id="tabP">Products</button>
         <button id="tabO">Orders</button>
+        <button id="tabU">Customers</button>
         <button id="logout" style="margin-left:auto">Logout</button>
       </div>
 
-      <section id="secP">
-        <form class="box" id="pForm" style="margin-bottom:16px">
+      <section id="secD"><div class="stat-grid" id="stats"></div><div id="lowBox"></div></section>
+
+      <section id="secP" hidden>
+        <form class="box" id="pForm" style="margin-bottom:16px" novalidate>
           <h2 id="pFormTitle">Add new product</h2>
           <input type="hidden" id="pId">
           <div class="form-grid">
@@ -37,7 +45,15 @@
             <div class="field"><label>Category *</label><select id="pCat"></select></div>
             <div class="field"><label>Price (₹) *</label><input id="pPrice" type="number" min="1" required></div>
             <div class="field"><label>MRP / original price (₹, optional)</label><input id="pMrp" type="number" min="0"></div>
-            <div class="field"><label>Image link or /images/photo.jpg</label><input id="pImage"></div>
+            <div class="field"><label>Stock quantity (empty = not tracked)</label><input id="pQty" type="number" min="0" placeholder="e.g. 25"></div>
+            <div class="field full"><label>Photos * (minimum 1, maximum 5). The first photo is the main one.</label>
+              <div class="ph-grid" id="phGrid"></div>
+              <div class="a-tools">
+                <input type="file" id="phFile" accept="image/jpeg,image/png,image/webp" multiple>
+              </div>
+              <div class="a-tools"><input id="phUrl" placeholder="or paste a photo link (https://...)"><button class="btn sm navy" type="button" id="phAdd">Add link</button></div>
+              <small class="hint" id="phMsg"></small>
+            </div>
             <div class="field full"><label>Description</label><textarea id="pDesc" rows="3"></textarea></div>
             <div class="field full checks">
               <label><input type="checkbox" id="pStock" checked> In stock</label>
@@ -46,14 +62,25 @@
             </div>
           </div>
           <div class="form-error" id="pErr"></div>
-          <button class="btn navy" type="submit" id="pSave">Save</button>
+          <button class="btn navy" type="submit" id="pSave">Save product</button>
           <button class="btn" type="button" id="pCancel" hidden>Cancel edit</button>
         </form>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Status</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div>
+        <div class="a-tools"><input id="pSearch" placeholder="Search products"></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Photo</th><th>Name</th><th>Price ₹</th><th>Stock</th><th>Status</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div>
       </section>
 
       <section id="secO" hidden>
+        <div class="a-tools">
+          <input id="oSearch" placeholder="Search order no, name, phone, invoice">
+          <select id="oStatus"><option value="">All status</option></select>
+          <button class="btn sm navy" id="oAdd" type="button">+ Add order</button>
+          <button class="btn sm" id="oCsv" type="button">Export CSV</button>
+        </div>
         <div id="oList"></div>
+      </section>
+
+      <section id="secU" hidden>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Verified</th><th>Orders</th><th>Joined</th><th></th></tr></thead><tbody id="uRows"></tbody></table></div>
       </section>
     </div>
   </main>

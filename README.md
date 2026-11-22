@@ -16,7 +16,9 @@ Plain HTML/CSS/JS ecommerce site. Hosting, HTTPS aur database sab free (GitHub +
 | About, Contact | `public/about.html`, `public/contact.html` |
 | Payment Methods | `public/payments.html` |
 | Shipping & Returns, Privacy, Terms | `public/shipping-returns.html`, `privacy.html`, `terms.html` |
-| Admin panel | `public/admin.html` |
+| Login / Sign up | `public/login.html`, `public/js/auth.js` |
+| My Account (order history) | `public/account.html`, `public/js/account.js` |
+| Admin panel (`/admin`) | `public/admin.html`, `public/js/admin.js` |
 | 404 | `public/404.html` |
 
 ## Folder structure
@@ -32,8 +34,11 @@ public/                    <- website (yahi publish hota hai)
 functions/api/             <- backend (Cloudflare Pages Functions)
   products.js              <- GET /api/products
   orders.js                <- POST /api/orders
-  admin/                   <- products + orders admin API (ADMIN_TOKEN se protected)
+  auth/ my/ img/           <- customer login, order history, product photos
+  admin/                   <- products, orders, customers, stats admin API
+  _lib/                    <- shared helpers (login, email OTP, stock)
 db/schema.sql, seed.sql    <- D1 tables aur sample data
+db/migrate_004_...sql      <- purane database ke liye (login + admin features)
 wrangler.toml              <- D1 binding
 ```
 
@@ -47,7 +52,8 @@ wrangler.toml              <- D1 binding
 - [ ] Policy pages (`shipping-returns`, `privacy`, `terms`) check karo
 - [ ] `public/sitemap.xml` aur `public/robots.txt` me asli link
 - [ ] `wrangler.toml` me `database_id` (database banane ke baad)
-- [ ] Cloudflare me `ADMIN_TOKEN` secret
+- [ ] Cloudflare me `ADMIN_TOKEN` secret (admin login: username `admin`)
+- [ ] Email OTP: `BREVO_API_KEY` + `MAIL_FROM` secrets (SETUP.md Step 13)
 
 ## Kaise kaam karta hai
 

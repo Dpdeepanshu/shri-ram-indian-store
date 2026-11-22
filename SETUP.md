@@ -205,7 +205,7 @@ npm run db:migrate:remote
    Poochhne par password paste karo.
    Ya dashboard se: Pages project > **Settings > Variables and Secrets > Add** > naam `ADMIN_TOKEN`, value password, type **Secret**.
 3. Dobara deploy chahiye ho to dashboard me **Deployments > Retry deployment** karo, ya koi chhota change push karo.
-4. `https://<apna-link>/admin.html` kholo, password daalo.
+4. `https://<apna-link>/admin` kholo. Username: `admin`, password: jo `ADMIN_TOKEN` me dala (Step 13 me badalne ka option bhi hai).
 
 Admin panel me:
 - **Products**: naya jodo, edit karo, stock khatam mark karo, home par dikhane wale chuno, hide/delete karo.
@@ -260,3 +260,94 @@ Browser me `http://localhost:8788`. Local admin ke liye project folder me `.dev.
 - `ADMIN_TOKEN` kisi ko mat batao, aur code me kabhi mat likho.
 - Orders me customer ka number/address hota hai, admin panel ka link aur password sambhal ke rakho.
 - Policy pages sample hain. Business ke hisaab se zaroor badlo.
+
+---
+
+## Step 13: Login / Sign up, Order history, naya Admin panel (PowerShell / VS Code Terminal)
+
+VS Code me **Terminal > New Terminal** kholo (PowerShell chalega). Project folder me ho: `cd shri-ram-indian-store`
+
+### 13.1 Database me naye tables (ek baar)
+
+Naye tables: `users`, `sessions`, `otps`, `rate_limits`, `product_images`. Naye columns: `orders.user_id`, `products.images`, `products.stock_qty`.
+
+```powershell
+npx wrangler login
+```
+
+**Purana database (jisme products/orders pehle se hain, aapka case)**:
+```powershell
+npm run db:migrate4:remote
+```
+Agar "duplicate column name" error aaye to columns pehle se hain, aage badho.
+
+**Bilkul naya database**: `npm run db:schema:remote` hi kaafi hai (usme sab hai).
+
+Local test ke liye (optional): `npm run db:migrate4:local`
+
+### 13.2 Email verification (free): Brevo
+
+Sign up par 6-digit code email par jaata hai. Brevo free plan me 300 email/din, card nahi chahiye.
+
+1. https://www.brevo.com par free account banao.
+2. **Senders, Domains & Dedicated IPs > Senders > Add a sender**: apna Gmail daalo, Brevo ek verification mail bhejega, link dabao.
+3. **SMTP & API > API Keys > Generate a new API key**. Key copy karo (`xkeysib-...`).
+4. Terminal me (project name apna likho; poochne par value paste karo):
+
+```powershell
+npx wrangler pages secret put BREVO_API_KEY --project-name shriramindianstore
+npx wrangler pages secret put MAIL_FROM --project-name shriramindianstore
+```
+`MAIL_FROM` = wahi Gmail jo Brevo me sender verify kiya.
+
+### 13.3 Admin panel
+
+- **URL**: `https://<apna-link>/admin`  (jaise `https://shri-ram-indian-store.pages.dev/admin`)
+- **Username**: `admin`
+- **Password**: wahi jo Step 10 me `ADMIN_TOKEN` secret me dala tha.
+
+Agar admin ka alag password / username chahiye (optional):
+```powershell
+npx wrangler pages secret put ADMIN_PASSWORD --project-name shriramindianstore
+npx wrangler pages secret put ADMIN_USERNAME --project-name shriramindianstore
+```
+`ADMIN_TOKEN` hata mat dena, wahi login session ko sign karta hai. `ADMIN_PASSWORD` set karoge to login usi se hoga.
+
+Secret badalne ke baad: dashboard > Deployments > **Retry deployment** (ya koi chhota push).
+
+### 13.4 Deploy
+
+```powershell
+git add .
+git commit -m "Accounts, order history, new admin panel"
+git push
+```
+`public/js/config.js` me `useDatabase: true` hai (D1 binding `DB` Step 9 jaisi).
+
+### 13.5 Local me chalana (optional)
+
+`.dev.vars.example` ko copy karke `.dev.vars` naam do (isme `ADMIN_TOKEN=test123` aur `DEV_MODE=1` hai, to email bheje bina OTP screen par dikh jaata hai).
+```powershell
+Copy-Item .dev.vars.example .dev.vars
+npm run db:schema:local
+npm run db:seed:local
+npm run dev
+```
+Browser: `http://localhost:8788`, admin: `http://localhost:8788/admin`. `DEV_MODE=1` production me kabhi mat rakhna.
+
+### 13.6 Kya kya hai
+
+- **Order se pehle login zaroori**: cart me item daalo, checkout par login ya sign up dikhega, login ke baad order hoga.
+- **Sign up**: naam, email, mobile, password, phir email par 6-digit code. Forgot password bhi hai (code se).
+- **My Account**: order history (status bar, invoice link), profile edit, password change. Header me naam par tap karo.
+- **Admin > Dashboard**: aaj ke orders/sales, low stock. **Products**: add, edit, delete, price + stock quantity table me seedha update, photos 1 se 5 (upload ya link). **Orders**: search/filter, status, naya order jodna, items ki quantity/price sahi karna, delete, invoice, CSV export. **Customers**: list aur delete.
+- Stock quantity set ho to order par apne aap ghatta hai, cancel/delete par wapas judta hai, 0 hone par "Out of stock".
+- Admin ki photos D1 database me rakhi jaati hain (browser me chhoti karke), alag storage ya card ki zaroorat nahi.
+
+| Dikkat | Hal |
+|---|---|
+| Sign up par "email service not configured" | 13.2 ke dono secrets (BREVO_API_KEY, MAIL_FROM) set karke redeploy karo |
+| Code email me nahi aaya | Spam folder dekho; Brevo me sender verified hona chahiye; `MAIL_FROM` wahi email ho |
+| Order par "login required" | Pehle login karo; cookies band na ho |
+| Admin: "Could not save... migration" | 13.1 ka migration chalao |
+| Admin login fail | Username `admin`, password = ADMIN_TOKEN (ya ADMIN_PASSWORD agar set kiya) |

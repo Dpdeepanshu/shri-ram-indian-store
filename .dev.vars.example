@@ -1,0 +1,9 @@
+# Local test ke liye: is file ko ".dev.vars" naam se copy karo (git me nahi jaati).
+ADMIN_TOKEN=test123
+# ADMIN_USERNAME=admin
+# ADMIN_PASSWORD=test123
+# Local me email bheje bina OTP screen par dikhane ke liye (production me kabhi mat rakho):
+DEV_MODE=1
+# Asli email OTP ke liye (SETUP.md Step 13):
+# BREVO_API_KEY=xkeysib-...
+# MAIL_FROM=aapka-verified-email@gmail.com

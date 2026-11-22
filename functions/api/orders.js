@@ -1,20 +1,14 @@
 // POST /api/orders: order database me save karta hai.
 // Daam client se nahi, database se liye jaate hain (taaki koi daam badal na sake).
-const json = (obj, status = 200) =>
-  new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
-const clean = (s, n) => String(s == null ? "" : s).trim().slice(0, n);
+import { json, clean, phoneOf, getUser } from "../_lib/util.js";
+import { moveStock } from "../_lib/stock.js";
 const PAYMENTS = ["Cash on Delivery", "UPI", "Bank Transfer"];
-
-// +91 / 0 / spaces / dashes hata kar 10 digit
-function phoneOf(v) {
-  let d = String(v == null ? "" : v).replace(/\D/g, "");
-  if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
-  else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
-  return d;
-}
 
 export async function onRequestPost({ request, env }) {
   if (!env.DB) return json({ error: "database not connected" }, 503);
+  // Order ke liye login zaroori hai
+  const user = await getUser(env, request);
+  if (!user) return json({ error: "login required" }, 401);
   let b;
   try { b = await request.json(); } catch (e) { return json({ error: "bad request" }, 400); }
 
@@ -22,6 +16,10 @@ export async function onRequestPost({ request, env }) {
   const city = clean(b.city, 80), state = clean(b.state, 40), pincode = clean(b.pincode, 6), notes = clean(b.notes, 300), orderNo = clean(b.orderNo, 30);
   if (b.company) return json({ ok: true, orderNo }); // bot trap (hidden field bhara hua)
   const payment = PAYMENTS.includes(b.payment) ? b.payment : "Other";
+  // Business (GST) customer: business name + GSTIN
+  const business = b.customerType === "business";
+  const bizName = business ? clean(b.bizName, 100) : "", gstin = business ? clean(b.gstin, 15).toUpperCase() : "";
+  if (business && (bizName.length < 2 || !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin))) return json({ error: "invalid details" }, 400);
 
   if (!name || !address || !city || !state || !/^[6-9]\d{9}$/.test(phone) || !/^\d{6}$/.test(pincode) || !/^[A-Z0-9-]{6,30}$/.test(orderNo))
     return json({ error: "invalid details" }, 400);
@@ -36,7 +34,7 @@ export async function onRequestPost({ request, env }) {
     if (recent && recent.c >= 5) return json({ error: "too many orders, please try later" }, 429);
 
     const marks = ids.map(() => "?").join(",");
-    const { results } = await env.DB.prepare(`SELECT id, name, category, price, in_stock FROM products WHERE active = 1 AND id IN (${marks})`).bind(...ids).all();
+    const { results } = await env.DB.prepare(`SELECT id, name, category, price, in_stock, stock_qty FROM products WHERE active = 1 AND id IN (${marks})`).bind(...ids).all();
     const byId = new Map(results.map((r) => [r.id, r]));
 
     // same product do baar aaye to qty jod do
@@ -52,7 +50,8 @@ export async function onRequestPost({ request, env }) {
     for (const [id, qty] of qtyById) {
       const p = byId.get(id);
       if (!p) continue;
-      if (!p.in_stock) { soldOut.push(p.name); continue; }
+      if (!p.in_stock || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0)) { soldOut.push(p.name); continue; }
+      if (p.stock_qty !== null && p.stock_qty !== undefined && qty > p.stock_qty) { soldOut.push(p.name + " (only " + p.stock_qty + " left)"); continue; }
       subtotal += p.price * qty;
       lines.push({ id: p.id, name: p.name, category: p.category, price: p.price, qty });
     }
@@ -63,9 +62,23 @@ export async function onRequestPost({ request, env }) {
     // FREE_SHIPPING_ABOVE aur SHIPPING_CHARGE set kar do.
     const FREE_ABOVE = Number(env.FREE_SHIPPING_ABOVE) || 999, SHIPPING = env.SHIPPING_CHARGE !== undefined && env.SHIPPING_CHARGE !== "" ? Number(env.SHIPPING_CHARGE) : 60;
     const shipping = subtotal >= FREE_ABOVE ? 0 : SHIPPING;
-    const ins = await env.DB.prepare(
-      "INSERT INTO orders (order_no, name, phone, address, city, state, pincode, payment, notes, items, subtotal, shipping, total) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
-    ).bind(orderNo, name, phone, address, city, state, pincode, payment, notes, JSON.stringify(lines), subtotal, shipping, subtotal + shipping).run();
+    const base = [orderNo, name, phone, address, city, state, pincode, payment];
+    const tail = [JSON.stringify(lines), subtotal, shipping, subtotal + shipping];
+    let ins;
+    try {
+      ins = await env.DB.prepare(
+        "INSERT INTO orders (order_no, name, phone, address, city, state, pincode, payment, notes, items, subtotal, shipping, total, customer_type, biz_name, gstin, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+      ).bind(...base, notes, ...tail, business ? "business" : "retail", bizName, gstin, user.id).run();
+    } catch (e) {
+      // migrate_003 abhi chala nahi to order fail na ho: business details note me daal ke purane columns se save karo
+      if (!/no column|no such column|has no column/i.test(String(e))) throw e;
+      const n2 = business ? ("[B2B] " + bizName + " | " + gstin + (notes ? " | " + notes : "")).slice(0, 400) : notes;
+      ins = await env.DB.prepare(
+        "INSERT INTO orders (order_no, name, phone, address, city, state, pincode, payment, notes, items, subtotal, shipping, total, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+      ).bind(...base, n2, ...tail, user.id).run();
+    }
+
+    await moveStock(env.DB, lines, -1); // stock ghatao (jin products ka stock_qty set hai)
 
     // Invoice number: prefix + order ki sequence (config.js ke webInvoicePrefix / webInvoiceStart jaisa)
     const prefix = env.INVOICE_PREFIX || "SRIS/WEB/2627/", start = Number(env.INVOICE_START) || 1;

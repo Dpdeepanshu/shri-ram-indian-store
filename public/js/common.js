@@ -24,7 +24,8 @@
     shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5L16 9.5",
     phone: "M8 3h8v18H8zM11 18h2",
     bank: "M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18",
-    check: "M5 12l4.5 4.5L19 7"
+    check: "M5 12l4.5 4.5L19 7",
+    user: "M12 12a4 4 0 1 0 .01 0M4 21c0-4 3.6-7 8-7s8 3 8 7"
   };
   const icon = (n) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n] || ICONS.check}"/></svg>`;
 
@@ -112,7 +113,7 @@
     Object.keys(c).forEach((id) => { if (!all.some((p) => String(p.id) === id)) { delete c[id]; changed = true; } });
     if (changed) setCart(c);
   }
-  function outOfStock(p) { return p.in_stock === 0 || p.in_stock === false; }
+  function outOfStock(p) { return p.in_stock === 0 || p.in_stock === false || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0); }
   function discount(p) { return p.mrp && p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0; }
   function productCard(p) {
     const off = discount(p);
@@ -129,6 +130,30 @@
         ${outOfStock(p) ? `<button disabled>Out of stock</button>` : `<button data-add="${esc(p.id)}">Add to cart</button>`}
       </div>
     </article>`;
+  }
+
+  // ---------- Customer login state ----------
+  // Server ke cookie session se pata chalta hai. Pehla jawab cache me rakhte hain.
+  let _me; 
+  function me() {
+    if (!_me) _me = fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((r) => (r.ok ? r.json() : { user: null })).then((d) => d.user || null).catch(() => null);
+    return _me;
+  }
+  async function logout() {
+    try { await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }); } catch (e) {}
+    _me = null; location.href = "index.html";
+  }
+  function paintAccount(u) {
+    const a = $("#acctLink"), m = $("#acctNav");
+    if (!cfg.useDatabase) { if (a) a.hidden = true; if (m) m.hidden = true; return; }
+    if (u) {
+      const first = esc(String(u.name || "Account").split(" ")[0]);
+      if (a) { a.href = "account.html"; a.innerHTML = icon("user") + `<span>${first}</span>`; a.title = "My account and order history"; }
+      if (m) { m.href = "account.html"; m.textContent = "My Orders"; }
+    } else {
+      if (a) { a.href = "login.html"; a.innerHTML = icon("user") + "<span>Login</span>"; }
+      if (m) { m.href = "login.html"; m.textContent = "Login / Sign up"; }
+    }
   }
 
   // ---------- Toast ----------
@@ -155,7 +180,9 @@
             <a href="about.html">About</a>
             <a href="payments.html">Payments</a>
             <a href="contact.html">Contact</a>
+            <a class="sub acct-m" href="login.html" id="acctNav">Login / Sign up</a>
           </nav>
+          <a class="acct-link" id="acctLink" href="login.html">Login</a>
           <a class="cart-link" href="checkout.html" aria-label="Cart">${icon("cart")}<span class="cart-badge" data-cart-count>0</span></a>
           <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">&#9776;</button>
         </div>`;
@@ -176,6 +203,7 @@
             <a href="privacy.html">Privacy Policy</a>
             <a href="terms.html">Terms &amp; Conditions</a>
             <a href="contact.html">Contact Us</a>
+            ${cfg.useDatabase ? '<a href="account.html">My Account &amp; Orders</a>' : ""}
           </div>
           <div><h4>Contact</h4>
             <p>${esc(cfg.address)}</p>
@@ -203,6 +231,7 @@
       if (el.dataset.link === "tel") el.href = "tel:+" + cfg.whatsappNumber;
     });
     updateCartCount();
+    if (cfg.useDatabase) me().then(paintAccount); else paintAccount(null);
   }
 
   document.addEventListener("click", (e) => {
@@ -210,6 +239,6 @@
     if (b) addToCart(b.dataset.add, 1);
   });
 
-  window.SRIS = { STATES, MAX_QTY, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
+  window.SRIS = { me, logout, STATES, MAX_QTY, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
   renderChrome();
 })();

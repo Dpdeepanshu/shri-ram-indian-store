@@ -9,6 +9,8 @@
     "db:schema:remote": "npx wrangler d1 execute shriram-store-db --remote --file=db/schema.sql",
     "db:migrate:local": "npx wrangler d1 execute shriram-store-db --local --file=db/migrate_002_invoice_state.sql",
     "db:migrate:remote": "npx wrangler d1 execute shriram-store-db --remote --file=db/migrate_002_invoice_state.sql",
-    "db:seed:remote": "npx wrangler d1 execute shriram-store-db --remote --file=db/seed.sql"
+    "db:seed:remote": "npx wrangler d1 execute shriram-store-db --remote --file=db/seed.sql",
+    "db:migrate4:local": "npx wrangler d1 execute shriram-store-db --local --file=db/migrate_004_accounts_admin.sql",
+    "db:migrate4:remote": "npx wrangler d1 execute shriram-store-db --remote --file=db/migrate_004_accounts_admin.sql"
   }
 }
