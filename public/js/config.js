@@ -8,17 +8,22 @@ window.STORE_CONFIG = {
   tagline: "Clothing, Beauty, Kitchenware aur Fashion Jewellery: sab ek hi dukaan me",
   topbarText: "Poore India me delivery  •  Cash on Delivery available",
 
-  // ---- Contact (REPLACE) ----
-  whatsappNumber: "919999999999",         // country code ke saath, bina + / space ke
-  phoneDisplay: "+91 99999 99999",        // jaisa site par dikhana hai
-  email: "yourname@example.com",
-  address: "Shop No. __, Market/Street, City, State - PINCODE",
-  hours: "Somvar se Shanivar, 10 AM se 8 PM",
-  gstin: "",                              // GST number ho to likho, warna khaali chhod do
+  // ---- Contact ----
+  whatsappNumber: "918887730348",         // country code ke saath, bina + / space ke
+  phoneDisplay: "+91 88877 30348",        // jaisa site par dikhana hai
+  email: "himanshuyadavaz12@gmail.com",
+  address: "Shop No. __, Market/Street, City, State - PINCODE",   // TODO: asli address likho
+  hours: "Somvar se Shanivar, 10 AM se 8 PM",                      // TODO: asli timing likho
+  gstin: "",                              // TODO: GST number yahan likho (warna khaali chhod do)
   instagram: "",                          // poora link, ya khaali
   facebook: "",                           // poora link, ya khaali
 
-  // ---- Shipping / Policy (REPLACE) ----
+  // ---- Invoice numbering (abhi site me use nahi hota, invoice feature ke liye) ----
+  // Format: SRIS/2627/2001, 2002, 2003 ...  (13 characters, 16 se kam)
+  invoicePrefix: "SRIS/2627/",            // 2627 = financial year 2026-27. 1 April 2027 se "SRIS/2728/"
+  invoiceStartNumber: 2001,
+
+  // ---- Shipping / Policy ----
   currency: "₹",
   freeShippingAbove: 999,                 // is amount se upar shipping free
   shippingCharge: 60,                     // kam order par shipping charge
@@ -26,8 +31,8 @@ window.STORE_CONFIG = {
   deliveryDays: "5 se 7 working days",
   returnDays: 7,
 
-  // ---- Website link (REPLACE: deploy ke baad jo link mile) ----
-  siteUrl: "https://shriramindianstore.pages.dev",
+  // ---- Website link ----
+  siteUrl: "https://shri-ram-indian-store.pages.dev",
 
   // ---- Categories (naam/icon badal sakte ho; key chhoti english me rakho) ----
   categories: [

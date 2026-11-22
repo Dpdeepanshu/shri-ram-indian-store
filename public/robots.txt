@@ -3,5 +3,5 @@ Allow: /
 Disallow: /admin.html
 Disallow: /api/
 
-# REPLACE: apna asli site link likho
-Sitemap: https://shriramindianstore.pages.dev/sitemap.xml
+# Site ka link
+Sitemap: https://shri-ram-indian-store.pages.dev/sitemap.xml
