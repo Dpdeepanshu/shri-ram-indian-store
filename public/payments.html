@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payment Methods | SHRI RAM INDIAN STORE</title>
+  <meta name="description" content="Pay by Cash on Delivery, UPI or bank transfer at SHRI RAM INDIAN STORE.">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="wrap">
+    <div class="page-title"><h1>Payment methods</h1></div>
+    <div class="prose">
+      <h2>Choose how you pay</h2>
+      <div class="pay-strip" id="payStrip" style="margin-bottom:14px"></div>
+      <table>
+        <tr><td>Cash on Delivery</td><td>Pay in cash to the delivery person when your parcel arrives. Please keep the exact amount ready.</td></tr>
+        <tr><td>UPI</td><td>Pay with Google Pay, PhonePe, Paytm, BHIM or any UPI app. <span id="upiLine">The UPI ID is shared on WhatsApp when we confirm your order.</span></td></tr>
+        <tr><td>Bank transfer</td><td>Pay by NEFT or IMPS to our bank account. <span id="bankLine">Account details are shared on WhatsApp when we confirm your order.</span></td></tr>
+      </table>
+      <h2>How payment works</h2>
+      <ul>
+        <li>Place your order from the cart. It opens in WhatsApp with your chosen payment method.</li>
+        <li>We confirm stock and the total, then share payment details if you chose UPI or bank transfer.</li>
+        <li>For UPI or bank transfer, send the payment screenshot or reference number on WhatsApp. We dispatch after the payment is received.</li>
+        <li>All prices are in Indian rupees (&#8377;) and include applicable GST.</li>
+      </ul>
+      <h2>Stay safe</h2>
+      <ul>
+        <li>We never ask for your card number, PIN, CVV or OTP.</li>
+        <li>Pay only to the UPI ID or bank account shown on this website or shared by us on our WhatsApp number.</li>
+      </ul>
+      <h2>Refunds</h2>
+      <p>Approved refunds are returned to your UPI ID or bank account within 5 to 7 working days. See <a href="shipping-returns.html">Shipping &amp; Returns</a>.</p>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    (function () {
+      var S = window.SRIS, c = S.cfg;
+      document.getElementById("payStrip").innerHTML = S.payChips();
+      if (c.upiId) document.getElementById("upiLine").innerHTML = "Our UPI ID is <b>" + S.esc(c.upiId) + "</b>.";
+      if (c.bankAccountNumber && c.bankIfsc) document.getElementById("bankLine").innerHTML = "Account name: <b>" + S.esc(c.bankAccountName) + "</b>, " + S.esc(c.bankName) + ", A/c <b>" + S.esc(c.bankAccountNumber) + "</b>, IFSC <b>" + S.esc(c.bankIfsc) + "</b>.";
+    })();
+  </script>
+</body>
+</html>

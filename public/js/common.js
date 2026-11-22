@@ -14,6 +14,7 @@
     dress: "M9 3l3 3 3-3 2 5-2 3 3 10H6l3-10-2-3z",
     beauty: "M10 3h4v5h-4zM8 8h8v13H8zM8 13h8",
     kitchen: "M4 11h16v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3zM2 11h20M8 4c0 2 2 2 2 4M13 4c0 2 2 2 2 4",
+    wallet: "M3 7h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l11-3v3M16 13.5h4",
     ring: "M12 8l3-4-3-1-3 1zM12 8a6 6 0 1 0 .01 0z",
     truck: "M2 6h11v10H2zM13 9h4l4 4v3h-8M6 19a2 2 0 1 0 .01 0M17 19a2 2 0 1 0 .01 0",
     cash: "M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 .01 0M6 10v4M18 10v4",
@@ -112,7 +113,7 @@
       h.innerHTML = `
         <div class="topbar">${esc(cfg.topbarText)}</div>
         <div class="header-main">
-          <a class="brand" href="index.html"><img src="images/logo-sm.png" alt="" width="52" height="52"><span>SHRI RAM<small>INDIA STORE</small></span></a>
+          <a class="brand" href="index.html"><img src="images/logo-sm.png" alt="" width="52" height="52" onerror="this.style.display='none'"><span>SHRI RAM<small>INDIA STORE</small></span></a>
           <nav class="nav" id="nav" aria-label="Main">
             <a href="index.html">Home</a>
             <a href="shop.html">Shop</a>

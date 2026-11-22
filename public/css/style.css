@@ -211,3 +211,6 @@ table.tbl th, table.tbl td { border-bottom: 1px solid var(--line); padding: 8px;
 .order-card header { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
 .tag { display: inline-block; font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: var(--gold-soft); margin-right: 4px; }
 .tag.off { background: #eceef4; }
+
+/* logo files are always shown as a circle, even if a square logo with white corners is dropped in */
+.brand img, .footer-brand img, .hero-seal img { border-radius: 50%; object-fit: cover; }
