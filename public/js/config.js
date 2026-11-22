@@ -69,5 +69,5 @@ window.STORE_CONFIG = {
   ],
 
   // ---- Database ----
-  useDatabase: false
+  useDatabase: true
 };

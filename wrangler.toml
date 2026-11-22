@@ -4,7 +4,7 @@ pages_build_output_dir = "public"
 
 # SETUP.md Step 9: database banane ke baad niche ke 4 lines ka # hata do aur database_id paste karo.
 # Pehle deploy (Step 6) tak inhe comment hi rehne do, warna build fail ho sakta hai.
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "shriram-store-db"
-# database_id = "PASTE-YOUR-DATABASE-ID-HERE"
+[[d1_databases]]
+binding = "DB"
+database_name = "shriram-store-db"
+database_id = "92e1bbef-c677-4470-ab97-834c1e0de18f"
