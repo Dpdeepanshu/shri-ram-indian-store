@@ -16,7 +16,7 @@ window.STORE_CONFIG = {
   gstSince: "21 March 2024",
   gstAddress: "Belrayan, near Belrayan Railway Station, Bhedauri, Lakhimpur Kheri, Uttar Pradesh - 262906",
   udyam: "UDYAM-UP-50-0303331",
-  udyamClass: "Micro enterprise (Trading)",
+  udyamClass: "Micro enterprise (Retailer/Ecommerce)",
   udyamSince: "24 September 2026",
 
   // ---- Contact ----

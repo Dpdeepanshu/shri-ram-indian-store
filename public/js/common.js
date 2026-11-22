@@ -55,11 +55,32 @@
   }
   const payChips = () => payMethods().map((m) => `<span class="chip">${icon(m.icon)}${esc(m.label.replace(" (NEFT / IMPS)", ""))}</span>`).join("");
 
+  // Phone: paste kiya hua +91 / 0 / spaces / dashes hata kar 10-digit number
+  function normalizePhone(v) {
+    let d = String(v == null ? "" : v).replace(/\D/g, "");
+    if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
+    else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+    return d;
+  }
+
   // ---------- Cart ----------
-  function getCart() { try { return JSON.parse(localStorage.getItem(CART_KEY)) || {}; } catch (e) { return {}; } }
+  const MAX_QTY = 20;
+  function getCart() {
+    let raw = {};
+    try { raw = JSON.parse(localStorage.getItem(CART_KEY)) || {}; } catch (e) {}
+    const c = {};
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      Object.keys(raw).forEach((id) => { const q = Math.floor(Number(raw[id])); if (q > 0) c[id] = Math.min(MAX_QTY, q); });
+    }
+    return c;
+  }
   function setCart(c) { try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {} updateCartCount(); }
-  function addToCart(id, qty) { const c = getCart(); c[id] = (c[id] || 0) + (qty || 1); setCart(c); toast("Added to cart"); }
-  function changeQty(id, d) { const c = getCart(); c[id] = (c[id] || 0) + d; if (c[id] <= 0) delete c[id]; setCart(c); }
+  function addToCart(id, qty) {
+    const c = getCart(), cur = c[id] || 0, want = cur + (qty || 1);
+    c[id] = Math.min(MAX_QTY, want); setCart(c);
+    toast(want > MAX_QTY ? "Maximum " + MAX_QTY + " per item" : "Added to cart");
+  }
+  function changeQty(id, d) { const c = getCart(); c[id] = Math.min(MAX_QTY, (c[id] || 0) + d); if (c[id] <= 0) delete c[id]; setCart(c); }
   function clearCart() { setCart({}); }
   function cartCount() { return Object.values(getCart()).reduce((a, b) => a + b, 0); }
   function updateCartCount() { document.querySelectorAll("[data-cart-count]").forEach((el) => (el.textContent = cartCount())); }
@@ -124,7 +145,7 @@
       h.innerHTML = `
         <div class="topbar">${esc(cfg.topbarText)}</div>
         <div class="header-main">
-          <a class="brand" href="index.html"><img src="images/logo-sm.png" alt="" width="52" height="52" onerror="this.style.display='none'"><span>SHRI RAM<small>INDIA STORE</small></span></a>
+          <a class="brand" href="index.html"><img src="images/logo-sm.png" alt="" width="52" height="52" onerror="this.style.display='none'"><span>SHRI RAM<small>INDIAN STORE</small></span></a>
           <nav class="nav" id="nav" aria-label="Main">
             <a href="index.html">Home</a>
             <a href="shop.html">Shop</a>
@@ -187,6 +208,6 @@
     if (b) addToCart(b.dataset.add, 1);
   });
 
-  window.SRIS = { cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
+  window.SRIS = { MAX_QTY, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
   renderChrome();
 })();

@@ -12,10 +12,14 @@
 <body>
   <div id="site-header"></div>
   <main class="wrap">
-    <div class="page-title"><h1>Your cart</h1></div>
+    <div class="page-title"><h1 id="pageTitle">Your cart</h1></div>
+    <div id="loadError" class="box" hidden style="margin:20px 0;text-align:center">
+      <p>Products could not be loaded. Please check your internet and <a href="checkout.html">try again</a>.</p>
+    </div>
     <div id="emptyCart" class="box" hidden style="margin:20px 0 40px;text-align:center">
       <p>Your cart is empty.</p><br><a class="btn navy" href="shop.html">Continue shopping</a>
     </div>
+    <div class="notice" id="cartNote" role="status" hidden></div>
     <div class="co" id="co">
       <div class="box"><h2>Items</h2><div id="items"></div></div>
       <div>
@@ -26,20 +30,22 @@
         <form class="box" id="orderForm" novalidate>
           <h2>Delivery details</h2>
           <div class="field"><label for="name">Full name *</label><input id="name" name="name" autocomplete="name" required></div>
-          <div class="field"><label for="phone">Mobile number *</label><input id="phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit number" required></div>
+          <div class="field"><label for="phone">Mobile number *</label><input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="10-digit number" required></div>
           <div class="field"><label for="address">Full address *</label><textarea id="address" name="address" rows="3" autocomplete="street-address" required></textarea></div>
           <div class="field"><label for="city">City / State *</label><input id="city" name="city" autocomplete="address-level2" required></div>
-          <div class="field"><label for="pincode">PIN code *</label><input id="pincode" name="pincode" inputmode="numeric" maxlength="6" autocomplete="postal-code" required></div>
+          <div class="field"><label for="pincode">PIN code *</label><input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" placeholder="6-digit PIN code" required></div>
           <h2 style="margin-top:18px">Payment method</h2>
           <div class="pay-opts" id="payOpts"></div>
           <div class="pay-detail" id="payDetail" aria-live="polite"></div>
-          <div class="field"><label for="notes">Order note (optional)</label><input id="notes" name="notes"></div>
+          <div class="field"><label for="notes">Order note (optional)</label><input id="notes" name="notes" maxlength="200"></div>
           <div class="form-error" id="formError" role="alert"></div>
-          <button class="btn wa" type="submit" style="width:100%">Place order on WhatsApp</button>
+          <button class="btn wa" type="submit" id="placeBtn" style="width:100%">Place order on WhatsApp</button>
           <p class="hint">Your order details open in WhatsApp. We confirm the order, and the payment details if needed, over WhatsApp. We never ask for card numbers, PINs or OTPs.</p>
         </form>
       </div>
     </div>
+
+    <section class="box done" id="done" hidden aria-live="polite"></section>
   </main>
   <div id="site-footer"></div>
   <script src="js/config.js"></script>

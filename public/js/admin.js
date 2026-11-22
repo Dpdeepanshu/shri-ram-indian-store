@@ -34,7 +34,15 @@
   });
   $("logout").addEventListener("click", logout);
 
-  function showPanel() { $("loginBox").hidden = true; $("panel").hidden = false; renderProducts(); }
+  function showPanel() {
+    $("loginBox").hidden = true; $("panel").hidden = false; renderProducts();
+    if (!cfg.useDatabase && !$("dbWarn")) {
+      const n = document.createElement("div");
+      n.id = "dbWarn"; n.className = "notice"; n.style.marginBottom = "14px";
+      n.textContent = "Note: useDatabase is false in js/config.js, so the public site still shows products from data/products.json. Changes made here appear on the site only after you set useDatabase: true.";
+      $("panel").insertBefore(n, $("panel").firstChild);
+    }
+  }
 
   // ---- tabs ----
   function tab(which) {
@@ -63,9 +71,11 @@
   $("pCancel").addEventListener("click", resetForm);
 
   $("pRows").addEventListener("click", async (e) => {
-    const t = e.target;
+    const t = e.target.closest("button");
+    if (!t) return;
     if (t.dataset.edit) {
       const p = products.find((x) => String(x.id) === t.dataset.edit);
+      if (!p) return;
       $("pId").value = p.id; $("pName").value = p.name; $("pCat").value = p.category; $("pPrice").value = p.price;
       $("pMrp").value = p.mrp == null ? "" : p.mrp; $("pImage").value = p.image || ""; $("pDesc").value = p.description || "";
       $("pStock").checked = !!p.in_stock; $("pFeat").checked = !!p.featured; $("pActive").checked = !!p.active;
