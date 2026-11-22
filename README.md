@@ -13,6 +13,7 @@ Plain HTML/CSS/JS ecommerce site. Hosting, HTTPS aur database sab free (GitHub +
 | Product detail | `public/product.html?id=` |
 | Cart + Checkout (WhatsApp order) | `public/checkout.html` |
 | About, Contact | `public/about.html`, `public/contact.html` |
+| Payment Methods | `public/payments.html` |
 | Shipping & Returns, Privacy, Terms | `public/shipping-returns.html`, `privacy.html`, `terms.html` |
 | Admin panel | `public/admin.html` |
 | 404 | `public/404.html` |
@@ -25,7 +26,7 @@ public/                    <- website (yahi publish hota hai)
   js/common.js             <- header, footer, cart, product card
   js/home.js shop.js product.js checkout.js admin.js
   data/products.json       <- products (jab tak database off hai)
-  images/                  <- product photos
+  images/                  <- logo, placeholder aur product photos
   css/style.css
 functions/api/             <- backend (Cloudflare Pages Functions)
   products.js              <- GET /api/products
@@ -37,7 +38,8 @@ wrangler.toml              <- D1 binding
 
 ## Replace karne wali cheezein (checklist)
 
-- [ ] `public/js/config.js`: naam, WhatsApp, phone, email, address, shipping, siteUrl
+- [ ] `public/js/config.js`: naam, WhatsApp, phone, email, address, GSTIN/Udyam, shipping, siteUrl
+- [ ] `public/js/config.js`: payment (`upiId`, `upiQrImage`, bank details). Khaali = "details WhatsApp par milenge"
 - [ ] Products: `public/data/products.json` ya admin panel
 - [ ] Photos: `public/images/`
 - [ ] `public/about.html` ka text

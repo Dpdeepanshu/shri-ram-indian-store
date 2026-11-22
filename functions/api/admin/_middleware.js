@@ -8,8 +8,8 @@ function safeEqual(a, b) {
 
 export async function onRequest({ request, env, next }) {
   const headers = { "content-type": "application/json", "cache-control": "no-store" };
-  if (!env.ADMIN_TOKEN) return new Response(JSON.stringify({ error: "ADMIN_TOKEN set nahi hai" }), { status: 500, headers });
+  if (!env.ADMIN_TOKEN) return new Response(JSON.stringify({ error: "ADMIN_TOKEN is not set" }), { status: 500, headers });
   const token = request.headers.get("x-admin-token") || "";
-  if (!safeEqual(token, env.ADMIN_TOKEN)) return new Response(JSON.stringify({ error: "Token galat hai" }), { status: 401, headers });
+  if (!safeEqual(token, env.ADMIN_TOKEN)) return new Response(JSON.stringify({ error: "Incorrect token" }), { status: 401, headers });
   return next();
 }

@@ -14,9 +14,9 @@ function parse(b) {
     description: clean(b.description, 1500),
     in_stock: flag(b.in_stock), featured: flag(b.featured), active: flag(b.active)
   };
-  if (!p.name || !p.category) return { error: "Naam aur category zaroori hain" };
-  if (!Number.isInteger(p.price) || p.price <= 0) return { error: "Sahi price likhein" };
-  if (p.mrp !== null && (!Number.isInteger(p.mrp) || p.mrp < 0)) return { error: "MRP galat hai" };
+  if (!p.name || !p.category) return { error: "Name and category are required" };
+  if (!Number.isInteger(p.price) || p.price <= 0) return { error: "Enter a valid price" };
+  if (p.mrp !== null && (!Number.isInteger(p.mrp) || p.mrp < 0)) return { error: "Invalid MRP" };
   if (p.image && !/^(https?:\/\/|\/)/.test(p.image)) return { error: "Image link http(s):// ya /images/... se shuru hona chahiye" };
   return { p };
 }

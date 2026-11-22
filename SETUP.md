@@ -35,13 +35,15 @@ Sirf yeh jagah badalni hain. Poori site me apne aap lag jaayega.
 |---|---|---|
 | Brand naam, tagline | `public/js/config.js` | `storeName`, `tagline`, `topbarText` |
 | WhatsApp number | `public/js/config.js` | `whatsappNumber` (91 ke saath, bina + ya space) |
-| Phone, email, address, timing, GSTIN | `public/js/config.js` | `phoneDisplay`, `email`, `address`, `hours`, `gstin` |
+| Phone, email, address, timing | `public/js/config.js` | `phoneDisplay`, `email`, `address`, `hours` |
+| GST / Udyam details | `public/js/config.js` | `legalName`, `gstin`, `gstAddress`, `udyam` (site me footer, About, Terms me apne aap dikhte hain) |
+| Payment (UPI, bank) | `public/js/config.js` | `upiId`, `upiQrImage` (QR photo `public/images/upi-qr.png`), `bankName`, `bankAccountName`, `bankAccountNumber`, `bankIfsc`, `codAvailable` |
 | Instagram / Facebook | `public/js/config.js` | `instagram`, `facebook` (link ya khaali) |
 | Shipping, COD, return days | `public/js/config.js` | `freeShippingAbove`, `shippingCharge`, `codAvailable`, `deliveryDays`, `returnDays` |
 | Site ka link | `public/js/config.js` | `siteUrl` (Step 6 ke baad asli link) |
 | Categories | `public/js/config.js` | `categories` (naam, icon, chhoti line) |
 | Products | `public/data/products.json` (ya admin panel) | naam, price, mrp, image, description |
-| Product photos | `public/images/` folder | photo daalo, products me `/images/photo.jpg` likho |
+| Product photos | `public/images/` folder | photo daalo, products me `images/photo.jpg` likho (abhi sab products `images/placeholder.svg` use karte hain) |
 | About text | `public/about.html` | `EDIT` comment ke neeche ka text |
 | Policies | `shipping-returns.html`, `privacy.html`, `terms.html` | sample text hai, apne hisaab se check/badlo |
 | SEO link | `public/sitemap.xml`, `public/robots.txt` | `shriramindianstore.pages.dev` ko asli link se badlo |

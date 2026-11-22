@@ -6,11 +6,58 @@
   const money = (n) => cfg.currency + Number(n).toLocaleString("en-IN");
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const categoryLabel = (key) => (cfg.categories.find((c) => c.key === key) || { label: key }).label;
+  const PLACEHOLDER = "images/placeholder.svg";
+  const imgFallback = `this.onerror=null;this.src='${PLACEHOLDER}'`;
+
+  // ---------- Icons (24x24 line icons) ----------
+  const ICONS = {
+    dress: "M9 3l3 3 3-3 2 5-2 3 3 10H6l3-10-2-3z",
+    beauty: "M10 3h4v5h-4zM8 8h8v13H8zM8 13h8",
+    kitchen: "M4 11h16v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3zM2 11h20M8 4c0 2 2 2 2 4M13 4c0 2 2 2 2 4",
+    ring: "M12 8l3-4-3-1-3 1zM12 8a6 6 0 1 0 .01 0z",
+    truck: "M2 6h11v10H2zM13 9h4l4 4v3h-8M6 19a2 2 0 1 0 .01 0M17 19a2 2 0 1 0 .01 0",
+    cash: "M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 .01 0M6 10v4M18 10v4",
+    ret: "M4 9h12a4 4 0 0 1 0 8H8M4 9l4-4M4 9l4 4",
+    chat: "M4 5h16v11H9l-5 4z",
+    cart: "M3 4h3l2.5 11h9L20 7H7M9 20a1 1 0 1 0 .01 0M17 20a1 1 0 1 0 .01 0",
+    shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5L16 9.5",
+    phone: "M8 3h8v18H8zM11 18h2",
+    bank: "M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18",
+    check: "M5 12l4.5 4.5L19 7"
+  };
+  const icon = (n) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n] || ICONS.check}"/></svg>`;
+
+  // ---------- Payment methods (driven by config.js) ----------
+  function payMethods() {
+    const m = [];
+    if (cfg.codAvailable) m.push({ id: "Cash on Delivery", label: "Cash on Delivery", sub: "Pay in cash when your order arrives.", icon: "cash" });
+    m.push({ id: "UPI", label: "UPI", sub: "Pay with any UPI app (Google Pay, PhonePe, Paytm, BHIM).", icon: "phone" });
+    m.push({ id: "Bank Transfer", label: "Bank Transfer (NEFT / IMPS)", sub: "Pay directly to our bank account.", icon: "bank" });
+    return m;
+  }
+  const bankShown = () => cfg.bankAccountNumber && cfg.bankIfsc;
+  function payDetailHtml(id, total, orderNo) {
+    if (id === "UPI") {
+      if (!cfg.upiId) return `<p>UPI payment details will be shared on WhatsApp once we confirm your order.</p>`;
+      const link = `upi://pay?pa=${encodeURIComponent(cfg.upiId)}&pn=${encodeURIComponent(cfg.storeName)}&am=${total}&cu=INR&tn=${encodeURIComponent(orderNo || "Order")}`;
+      return `<p>Pay <b>${money(total)}</b> to UPI ID <code>${esc(cfg.upiId)}</code></p>
+        ${cfg.upiQrImage ? `<img src="${esc(cfg.upiQrImage)}" alt="UPI QR code">` : ""}
+        <p><a class="btn navy" style="padding:8px 18px" href="${link}">Pay with UPI app</a></p>
+        <p class="hint">After paying, send the payment screenshot or UTR number on WhatsApp so we can confirm your order.</p>`;
+    }
+    if (id === "Bank Transfer") {
+      if (!bankShown()) return `<p>Bank account details will be shared on WhatsApp once we confirm your order.</p>`;
+      return `<table class="kv"><tr><td>Account name</td><td>${esc(cfg.bankAccountName)}</td></tr><tr><td>Bank</td><td>${esc(cfg.bankName)}</td></tr><tr><td>Account number</td><td>${esc(cfg.bankAccountNumber)}</td></tr><tr><td>IFSC</td><td>${esc(cfg.bankIfsc)}</td></tr></table>
+        <p class="hint">Send the transaction reference on WhatsApp after paying.</p>`;
+    }
+    return `<p>Keep <b>${money(total)}</b> ready. You pay when the parcel is delivered.</p>`;
+  }
+  const payChips = () => payMethods().map((m) => `<span class="chip">${icon(m.icon)}${esc(m.label.replace(" (NEFT / IMPS)", ""))}</span>`).join("");
 
   // ---------- Cart ----------
   function getCart() { try { return JSON.parse(localStorage.getItem(CART_KEY)) || {}; } catch (e) { return {}; } }
   function setCart(c) { try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {} updateCartCount(); }
-  function addToCart(id, qty) { const c = getCart(); c[id] = (c[id] || 0) + (qty || 1); setCart(c); toast("Cart me add ho gaya ✓"); }
+  function addToCart(id, qty) { const c = getCart(); c[id] = (c[id] || 0) + (qty || 1); setCart(c); toast("Added to cart"); }
   function changeQty(id, d) { const c = getCart(); c[id] = (c[id] || 0) + d; if (c[id] <= 0) delete c[id]; setCart(c); }
   function clearCart() { setCart({}); }
   function cartCount() { return Object.values(getCart()).reduce((a, b) => a + b, 0); }
@@ -23,33 +70,28 @@
     if (cfg.useDatabase) {
       try {
         const r = await fetch("/api/products");
-        if (r.ok) {
-          const d = await r.json();
-          if (Array.isArray(d) && d.length) { _cache = d; return _cache; }
-        }
+        if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length) { _cache = d; return _cache; } }
       } catch (e) {}
     }
     const r = await fetch("data/products.json");
     _cache = await r.json();
     return _cache;
   }
-
   function outOfStock(p) { return p.in_stock === 0 || p.in_stock === false; }
   function discount(p) { return p.mrp && p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0; }
-
   function productCard(p) {
     const off = discount(p);
     const link = "product.html?id=" + encodeURIComponent(p.id);
     return `<article class="card">
       <a href="${link}" class="thumb">
         ${off ? `<span class="badge">${off}% OFF</span>` : ""}
-        <img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/600x600?text=No+Image'">
+        <img src="${esc(p.image || PLACEHOLDER)}" alt="${esc(p.name)}" loading="lazy" onerror="${imgFallback}">
       </a>
       <div class="body">
         <span class="cat">${esc(categoryLabel(p.category))}</span>
         <a href="${link}"><h3>${esc(p.name)}</h3></a>
         <div class="price"><b>${money(p.price)}</b>${off ? `<s>${money(p.mrp)}</s>` : ""}</div>
-        ${outOfStock(p) ? `<button disabled>Stock khatam</button>` : `<button data-add="${esc(p.id)}">Cart me daalein</button>`}
+        ${outOfStock(p) ? `<button disabled>Out of stock</button>` : `<button data-add="${esc(p.id)}">Add to cart</button>`}
       </div>
     </article>`;
   }
@@ -58,7 +100,7 @@
   let toastTimer;
   function toast(msg) {
     let t = $("#toast");
-    if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.appendChild(t); }
+    if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
     t.textContent = msg; t.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
   }
@@ -70,16 +112,17 @@
       h.innerHTML = `
         <div class="topbar">${esc(cfg.topbarText)}</div>
         <div class="header-main">
-          <a class="brand" href="index.html">${esc(cfg.storeName)}</a>
-          <nav class="nav" id="nav">
+          <a class="brand" href="index.html"><img src="images/logo-sm.png" alt="" width="52" height="52"><span>SHRI RAM<small>INDIA STORE</small></span></a>
+          <nav class="nav" id="nav" aria-label="Main">
             <a href="index.html">Home</a>
             <a href="shop.html">Shop</a>
             ${cfg.categories.map((c) => `<a class="sub" href="shop.html?cat=${esc(c.key)}">${esc(c.label)}</a>`).join("")}
             <a href="about.html">About</a>
+            <a href="payments.html">Payments</a>
             <a href="contact.html">Contact</a>
           </nav>
-          <a class="cart-link" href="checkout.html" aria-label="Cart">🛒 <span class="cart-badge" data-cart-count>0</span></a>
-          <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+          <a class="cart-link" href="checkout.html" aria-label="Cart">${icon("cart")}<span class="cart-badge" data-cart-count>0</span></a>
+          <button class="menu-btn" id="menuBtn" aria-label="Open menu">&#9776;</button>
         </div>`;
       const here = location.pathname.split("/").pop() || "index.html";
       h.querySelectorAll(".nav a").forEach((a) => { if (a.getAttribute("href") === here) a.classList.add("active"); });
@@ -87,35 +130,36 @@
     }
     const f = $("#site-footer");
     if (f) {
-      const social = [cfg.instagram && `<a href="${esc(cfg.instagram)}" target="_blank" rel="noopener">Instagram</a>`, cfg.facebook && `<a href="${esc(cfg.facebook)}" target="_blank" rel="noopener">Facebook</a>`].filter(Boolean).join(" • ");
+      const social = [cfg.instagram && `<a href="${esc(cfg.instagram)}" target="_blank" rel="noopener">Instagram</a>`, cfg.facebook && `<a href="${esc(cfg.facebook)}" target="_blank" rel="noopener">Facebook</a>`].filter(Boolean).join(" ");
       f.innerHTML = `
         <div class="footer-grid">
-          <div><h4>${esc(cfg.storeName)}</h4><p>${esc(cfg.tagline)}</p>${social ? `<p>${social}</p>` : ""}</div>
+          <div class="footer-brand"><img src="images/logo-sm.png" alt="${esc(cfg.storeName)} logo" width="72" height="72"><p>${esc(cfg.tagline)}</p>${social ? `<p>${social}</p>` : ""}</div>
           <div><h4>Shop</h4>${cfg.categories.map((c) => `<a href="shop.html?cat=${esc(c.key)}">${esc(c.label)}</a>`).join("")}</div>
-          <div><h4>Madad</h4>
+          <div><h4>Help</h4>
+            <a href="payments.html">Payment Methods</a>
             <a href="shipping-returns.html">Shipping &amp; Returns</a>
             <a href="privacy.html">Privacy Policy</a>
             <a href="terms.html">Terms &amp; Conditions</a>
             <a href="contact.html">Contact Us</a>
           </div>
-          <div><h4>Sampark</h4>
+          <div><h4>Contact</h4>
             <p>${esc(cfg.address)}</p>
-            <p>📞 <a href="tel:+${esc(cfg.whatsappNumber)}">${esc(cfg.phoneDisplay)}</a></p>
-            <p>✉️ <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></p>
-            <p>🕒 ${esc(cfg.hours)}</p>
+            <p>Phone: <a href="tel:+${esc(cfg.whatsappNumber)}">${esc(cfg.phoneDisplay)}</a></p>
+            <p>Email: <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></p>
+            <p>${esc(cfg.hours)}</p>
           </div>
         </div>
-        <div class="footer-bottom">© ${new Date().getFullYear()} ${esc(cfg.storeName)}. Sabhi adhikar surakshit.${cfg.gstin ? " • GSTIN: " + esc(cfg.gstin) : ""}</div>`;
+        <div class="footer-pay"><span>We accept:</span>${payChips()}</div>
+        <div class="footer-bottom">&copy; ${new Date().getFullYear()} ${esc(cfg.storeName)} (${esc(cfg.legalName)}, ${esc(cfg.businessType)}). All rights reserved.<br>GSTIN: ${esc(cfg.gstin)} &nbsp;|&nbsp; Udyam Registration No.: ${esc(cfg.udyam)}</div>`;
     }
-    // Floating WhatsApp button
     if (!$("#waFloat")) {
       const a = document.createElement("a");
       a.id = "waFloat"; a.className = "wa-float"; a.target = "_blank"; a.rel = "noopener";
-      a.href = `https://wa.me/${cfg.whatsappNumber}?text=${encodeURIComponent("Namaste, mujhe " + cfg.storeName + " ke baare me poochna hai.")}`;
-      a.textContent = "💬 WhatsApp";
+      a.href = `https://wa.me/${cfg.whatsappNumber}?text=${encodeURIComponent("Hello, I have a question about " + cfg.storeName + ".")}`;
+      a.textContent = "Chat on WhatsApp";
       document.body.appendChild(a);
     }
-    // [data-cfg="key"] wale elements ko config se bharo
+    // [data-cfg="key"] elements are filled from config
     document.querySelectorAll("[data-cfg]").forEach((el) => {
       const v = cfg[el.dataset.cfg];
       if (v === undefined || v === "") return;
@@ -126,12 +170,11 @@
     updateCartCount();
   }
 
-  // Add-to-cart buttons (sab pages par)
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-add]");
     if (b) addToCart(b.dataset.add, 1);
   });
 
-  window.SRIS = { cfg, $, money, esc, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast };
+  window.SRIS = { cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
   renderChrome();
 })();

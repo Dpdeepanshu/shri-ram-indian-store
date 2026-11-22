@@ -3,14 +3,14 @@
   const q = document.getElementById("q"), cat = document.getElementById("cat"), sort = document.getElementById("sort");
   const grid = document.getElementById("grid"), count = document.getElementById("count"), empty = document.getElementById("empty");
 
-  cat.innerHTML = `<option value="all">Sab categories</option>` + cfg.categories.map((c) => `<option value="${S.esc(c.key)}">${S.esc(c.label)}</option>`).join("");
+  cat.innerHTML = `<option value="all">All categories</option>` + cfg.categories.map((c) => `<option value="${S.esc(c.key)}">${S.esc(c.label)}</option>`).join("");
   const params = new URLSearchParams(location.search);
   const wanted = params.get("cat");
   if (wanted && cfg.categories.some((c) => c.key === wanted)) cat.value = wanted;
   q.value = params.get("q") || "";
 
   let all = [];
-  try { all = await S.loadProducts(); } catch (e) { count.textContent = "Products load nahi ho paaye."; }
+  try { all = await S.loadProducts(); } catch (e) { count.textContent = "Products could not be loaded."; }
 
   function render() {
     const term = q.value.trim().toLowerCase();

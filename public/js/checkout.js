@@ -3,9 +3,11 @@
   let all = [];
   try { all = await S.loadProducts(); } catch (e) {}
 
-  const payment = $("payment");
-  payment.innerHTML = (cfg.codAvailable ? `<option value="Cash on Delivery">Cash on Delivery</option>` : "") +
-    `<option value="UPI / Bank transfer">UPI / Bank transfer (details WhatsApp par milenge)</option>`;
+  const methods = S.payMethods();
+  $("payOpts").innerHTML = methods.map((m, i) => `<label class="pay-opt"><input type="radio" name="payment" value="${esc(m.id)}" ${i === 0 ? "checked" : ""}><span><b>${esc(m.label)}</b><small>${esc(m.sub)}</small></span></label>`).join("");
+  const chosen = () => (document.querySelector('input[name="payment"]:checked') || {}).value || methods[0].id;
+  function showPayDetail() { $("payDetail").innerHTML = S.payDetailHtml(chosen(), totals().total); }
+  $("payOpts").addEventListener("change", showPayDetail);
 
   function totals() {
     const cart = S.getCart();
@@ -25,18 +27,18 @@
     $("emptyCart").hidden = has;
     $("items").innerHTML = t.lines.map(({ p, qty }) => `
       <div class="cart-row">
-        <img src="${esc(p.image)}" alt="" onerror="this.onerror=null;this.src='https://placehold.co/128x128?text=No+Image'">
+        <img src="${esc(p.image || S.PLACEHOLDER)}" alt="" onerror="${S.imgFallback}">
         <div><a href="product.html?id=${encodeURIComponent(p.id)}" style="text-decoration:none"><b>${esc(p.name)}</b></a><br>
-          <small>${S.money(p.price)} x ${qty} = ${S.money(p.price * qty)}</small><br>
-          <button class="link-btn" data-rm="${esc(p.id)}">Hatayein</button></div>
-        <div class="qty"><button data-dec="${esc(p.id)}" aria-label="Kam karein">−</button><span>${qty}</span><button data-inc="${esc(p.id)}" aria-label="Badhayein">+</button></div>
+          <small>${S.money(p.price)} × ${qty} = ${S.money(p.price * qty)}</small><br>
+          <button class="link-btn" data-rm="${esc(p.id)}">Remove</button></div>
+        <div class="qty"><button data-dec="${esc(p.id)}" aria-label="Decrease quantity">−</button><span>${qty}</span><button data-inc="${esc(p.id)}" aria-label="Increase quantity">+</button></div>
       </div>`).join("");
     const left = cfg.freeShippingAbove - t.subtotal;
     $("summary").innerHTML = `
       <div class="sum-row"><span>Subtotal</span><span>${S.money(t.subtotal)}</span></div>
       <div class="sum-row"><span>Shipping</span><span>${t.shipping ? S.money(t.shipping) : "Free"}</span></div>
       <div class="sum-row total"><span>Total</span><span>${S.money(t.total)}</span></div>
-      ${has && left > 0 ? `<p class="hint">Aur ${S.money(left)} ka saamaan jodein, shipping free ho jaayegi.</p>` : ""}`;
+      ${has && left > 0 ? `<p class="hint">Add ${S.money(left)} more to get free shipping.</p>` : ""}`;
   }
 
   $("items").addEventListener("click", (e) => {
@@ -45,7 +47,7 @@
     else if (t.dataset.dec) S.changeQty(t.dataset.dec, -1);
     else if (t.dataset.rm) { const c = S.getCart(); delete c[t.dataset.rm]; S.setCart(c); }
     else return;
-    render();
+    render(); showPayDetail();
   });
 
   function orderNo() {
@@ -61,16 +63,17 @@
     if (!t.lines.length) return;
     const d = Object.fromEntries(new FormData(e.target).entries());
     Object.keys(d).forEach((k) => (d[k] = String(d[k]).trim()));
-    if (!d.name) return (err.textContent = "Apna naam likhein.");
-    if (!/^[6-9]\d{9}$/.test(d.phone)) return (err.textContent = "Sahi 10 digit mobile number likhein.");
-    if (d.address.length < 8) return (err.textContent = "Poora address likhein.");
-    if (!d.city) return (err.textContent = "Sheher / rajya likhein.");
-    if (!/^\d{6}$/.test(d.pincode)) return (err.textContent = "Sahi 6 digit pincode likhein.");
+    if (!d.name) return (err.textContent = "Please enter your name.");
+    if (!/^[6-9]\d{9}$/.test(d.phone)) return (err.textContent = "Please enter a valid 10-digit mobile number.");
+    if (d.address.length < 8) return (err.textContent = "Please enter your full address.");
+    if (!d.city) return (err.textContent = "Please enter your city and state.");
+    if (!/^\d{6}$/.test(d.pincode)) return (err.textContent = "Please enter a valid 6-digit PIN code.");
     err.textContent = "";
 
     const no = orderNo();
     const lines = t.lines.map((l) => `• ${l.p.name} x ${l.qty} = ${S.money(l.p.price * l.qty)}`).join("\n");
-    const msg = `*Naya Order: ${cfg.storeName}*\nOrder No: ${no}\n\n${lines}\n\nSubtotal: ${S.money(t.subtotal)}\nShipping: ${t.shipping ? S.money(t.shipping) : "Free"}\n*Total: ${S.money(t.total)}*\n\nPayment: ${d.payment}\n\nNaam: ${d.name}\nMobile: ${d.phone}\nAddress: ${d.address}, ${d.city} - ${d.pincode}${d.notes ? "\nNote: " + d.notes : ""}`;
+    const paid = d.payment === "Cash on Delivery" ? "pay on delivery" : "payment pending, details to be confirmed";
+    const msg = `*New order: ${cfg.storeName}*\nOrder No: ${no}\n\n${lines}\n\nSubtotal: ${S.money(t.subtotal)}\nShipping: ${t.shipping ? S.money(t.shipping) : "Free"}\n*Total: ${S.money(t.total)}*\n\nPayment method: ${d.payment} (${paid})\n\nName: ${d.name}\nMobile: ${d.phone}\nAddress: ${d.address}, ${d.city} - ${d.pincode}${d.notes ? "\nNote: " + d.notes : ""}`;
 
     if (cfg.useDatabase) {
       try {
@@ -84,5 +87,5 @@
     location.href = `https://wa.me/${cfg.whatsappNumber}?text=${encodeURIComponent(msg)}`;
   });
 
-  render();
+  render(); showPayDetail();
 })();

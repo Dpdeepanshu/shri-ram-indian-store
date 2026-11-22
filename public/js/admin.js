@@ -8,7 +8,7 @@
     opt = opt || {};
     const r = await fetch(path, { ...opt, headers: { "content-type": "application/json", "x-admin-token": token } });
     const d = await r.json().catch(() => ({}));
-    if (r.status === 401) { logout(); throw new Error("Password galat hai"); }
+    if (r.status === 401) { logout(); throw new Error("Incorrect password"); }
     if (!r.ok) throw new Error(d.error || "Error " + r.status);
     return d;
   }
@@ -51,14 +51,14 @@
   function renderProducts() {
     $("pRows").innerHTML = products.map((p) => `<tr>
       <td>${p.id}</td><td>${esc(p.name)}</td><td>${esc(S.categoryLabel(p.category))}</td><td>${S.money(p.price)}</td>
-      <td>${p.active ? '<span class="tag">Live</span>' : '<span class="tag off">Hidden</span>'}${p.in_stock ? "" : '<span class="tag off">No stock</span>'}${p.featured ? '<span class="tag">Home</span>' : ""}</td>
+      <td>${p.active ? '<span class="tag">Live</span>' : '<span class="tag off">Hidden</span>'}${p.in_stock ? "" : '<span class="tag off">Out of stock</span>'}${p.featured ? '<span class="tag">Home</span>' : ""}</td>
       <td><button class="link-btn" data-edit="${p.id}">Edit</button> <button class="link-btn" data-del="${p.id}">Delete</button></td></tr>`).join("") ||
-      `<tr><td colspan="6">Abhi koi product nahi hai.</td></tr>`;
+      `<tr><td colspan="6">No products yet.</td></tr>`;
   }
 
   function resetForm() {
     $("pForm").reset(); $("pId").value = ""; $("pStock").checked = true; $("pActive").checked = true;
-    $("pFormTitle").textContent = "Naya product jodein"; $("pCancel").hidden = true; $("pErr").textContent = "";
+    $("pFormTitle").textContent = "Add new product"; $("pCancel").hidden = true; $("pErr").textContent = "";
   }
   $("pCancel").addEventListener("click", resetForm);
 
@@ -69,10 +69,10 @@
       $("pId").value = p.id; $("pName").value = p.name; $("pCat").value = p.category; $("pPrice").value = p.price;
       $("pMrp").value = p.mrp == null ? "" : p.mrp; $("pImage").value = p.image || ""; $("pDesc").value = p.description || "";
       $("pStock").checked = !!p.in_stock; $("pFeat").checked = !!p.featured; $("pActive").checked = !!p.active;
-      $("pFormTitle").textContent = "Product edit karein (ID " + p.id + ")"; $("pCancel").hidden = false;
+      $("pFormTitle").textContent = "Edit product (ID " + p.id + ")"; $("pCancel").hidden = false;
       $("pForm").scrollIntoView({ behavior: "smooth" });
     } else if (t.dataset.del) {
-      if (!confirm("Is product ko pakka delete karna hai? (Chhupana ho to Edit me 'Site par dikhayein' band karein)")) return;
+      if (!confirm("Delete this product permanently? (To just hide it, untick 'Show on site' in Edit.)")) return;
       try { await api("/api/admin/products?id=" + t.dataset.del, { method: "DELETE" }); await loadProducts(); renderProducts(); }
       catch (err) { alert(err.message); }
     }
@@ -88,7 +88,7 @@
     $("pErr").textContent = "";
     try {
       await api("/api/admin/products", { method: body.id ? "PUT" : "POST", body: JSON.stringify(body) });
-      await loadProducts(); renderProducts(); resetForm(); S.toast("Save ho gaya ✓");
+      await loadProducts(); renderProducts(); resetForm(); S.toast("Saved");
     } catch (err) { $("pErr").textContent = err.message; }
   });
 
@@ -96,7 +96,7 @@
   const STATUS = ["new", "confirmed", "shipped", "delivered", "cancelled"];
   async function loadOrders() {
     const box = $("oList");
-    box.innerHTML = "<p class='empty'>Load ho raha hai...</p>";
+    box.innerHTML = "<p class='empty'>Loading...</p>";
     try {
       const orders = await api("/api/admin/orders");
       box.innerHTML = orders.map((o) => {
@@ -110,13 +110,13 @@
           <div style="margin:6px 0">${items.map((i) => `${esc(i.name)} x ${i.qty}`).join("<br>")}</div>
           <div><b>Total: ${S.money(o.total)}</b> (shipping ${S.money(o.shipping)}) • ${esc(o.payment || "")}${o.notes ? " • Note: " + esc(o.notes) : ""}</div>
         </div>`;
-      }).join("") || "<p class='empty'>Abhi koi order nahi aaya.</p>";
+      }).join("") || "<p class='empty'>No orders yet.</p>";
     } catch (err) { box.innerHTML = `<p class="empty">${esc(err.message)}</p>`; }
   }
   $("oList").addEventListener("change", async (e) => {
     const sel = e.target;
     if (!sel.dataset.order) return;
-    try { await api("/api/admin/orders", { method: "PUT", body: JSON.stringify({ id: sel.dataset.order, status: sel.value }) }); S.toast("Status badal gaya ✓"); }
+    try { await api("/api/admin/orders", { method: "PUT", body: JSON.stringify({ id: sel.dataset.order, status: sel.value }) }); S.toast("Status updated"); }
     catch (err) { alert(err.message); }
   });
 
