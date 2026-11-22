@@ -119,7 +119,9 @@
     if (changed) setCart(c);
   }
   // ASIN: products.json me "asin" field, ya description ke end me "ASIN: B0XXXXXXXX" (database products)
-  function asinOf(p) { if (!p) return ""; if (p.asin) return String(p.asin).toUpperCase(); const m = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || "")); return m ? m[1].toUpperCase() : ""; }
+  const nkey = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  function asinByName(name) { const k = nkey(name); const e = (cfg.asinMap || []).find((x) => x.all.every((w) => k.includes(w))); return e ? e.asin : ""; }
+  function asinOf(p) { if (!p) return ""; if (p.asin) return String(p.asin).toUpperCase(); const m = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || "")); return m ? m[1].toUpperCase() : asinByName(p.name); }
   function outOfStock(p) { return p.in_stock === 0 || p.in_stock === false || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0); }
   function discount(p) { return p.mrp && p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0; }
   function productCard(p) {
@@ -270,6 +272,6 @@
     if (b) addToCart(b.dataset.add, 1);
   });
 
-  window.SRIS = { clearInvoiceCache, me, logout, STATES, MAX_QTY, MAX_RETAIL, maxQtyFor, setQty, asinOf, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
+  window.SRIS = { asinByName, clearInvoiceCache, me, logout, STATES, MAX_QTY, MAX_RETAIL, maxQtyFor, setQty, asinOf, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
   renderChrome();
 })();

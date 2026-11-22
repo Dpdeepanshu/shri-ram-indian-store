@@ -68,3 +68,10 @@ Typo: "INDIA STORE" -> "INDIAN STORE" (header, logo alt).
 - Invoice ke neeche footer me us invoice ka apna link: "Verify this invoice online: https://.../invoice.html?no=ORDERNO&k=KEY". PDF me bhi clickable. Customer ya koi bhi PDF se link khol kar bina login ke wahi invoice online dekh sakta hai.
 - Link me secret key (HMAC) hai, isliye order number guess karke koi dusra invoice nahi khol sakta. Key ADMIN_TOKEN se banti hai (ya optional INVOICE_SECRET Cloudflare variable; use badalne par purane links band ho jaate hain). Naya endpoint: functions/api/invoice.js (rate limited).
 - Naya Cloudflare setting zaroori nahi; ADMIN_TOKEN pehle se set hai. Pehle se download ki hui purani PDF me ye link nahi hoga, naya download karna hoga.
+
+# Round 6c (ASIN fix, QR, read-only verify page)
+
+- ASIN: database ke products me description me ASIN nahi tha (migrate_005 live DB par nahi chala), isliye invoice par nahi aata tha. Ab config.js ke `asinMap` se product ke naam se ASIN apne aap milta hai (11 products ke ASIN daale hain). Migration chalane ki zaroorat nahi. Naya product jodo to asinMap me ek line badhao.
+- PDF link: "Microsoft Print to PDF" links hata deta hai. Chrome / Edge me Destination "Save as PDF" chuno, tab link clickable rehta hai. Isliye invoice me verify link ka QR code bhi hai (scan karne par chalta hai, kisi bhi PDF printer se).
+- Verify link (invoice.html?no=...&k=...): sirf issued invoice dikhta hai, koi edit option nahi (customer type, date, GSTIN, signature controls hidden). Sirf Print / Save as PDF.
+- Print / Save dabate hi invoice ke options (retail/business, GSTIN, date, signature) server par save hote hain (table invoice_opts apne aap ban jaati hai), taaki verify link par wahi invoice dikhe jo PDF me hai.

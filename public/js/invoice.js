@@ -134,6 +134,11 @@
         ${upiLine}</div>${qrImg}</div>`;
   }
 
+  // Verify link ka QR (library: js/qrcode.js). PDF me link na chale (jaise Microsoft Print to PDF) tab bhi scan ho jaata hai.
+  function qrSvg(url) {
+    try { const q = window.qrcode(0, "M"); q.addData(url); q.make(); return `<span class="vqr" aria-label="QR code to verify this invoice">${q.createSvgTag(3, 0)}</span>`; } catch (e) { return ""; }
+  }
+
   function build(o, opts) {
     opts = opts || {};
     const business = opts.type === "business" && opts.biz;
@@ -217,7 +222,7 @@
         </div>
         ${signBlock}
       </div>
-      <div class="thanks">Thank you for shopping with <b>${esc(cfg.storeName)}</b> &nbsp;|&nbsp; <a href="${esc(site)}/" target="_blank" rel="noopener">${esc(site)}</a>${vUrl ? `<div class="vfy">Verify this invoice online: <a href="${esc(vUrl)}" target="_blank" rel="noopener">${esc(vUrl)}</a></div>` : ""}</div>
+      <div class="thanks">Thank you for shopping with <b>${esc(cfg.storeName)}</b> &nbsp;|&nbsp; <a href="${esc(site)}/" target="_blank" rel="noopener">${esc(site)}</a>${vUrl ? `<div class="vfy">${qrSvg(vUrl)}<div>Verify this invoice online (scan the QR or open the link):<br><a href="${esc(vUrl)}" target="_blank" rel="noopener">${esc(vUrl)}</a></div></div>` : ""}</div>
     </div>`;
   }
 

@@ -81,6 +81,23 @@ window.STORE_CONFIG = {
     { key: "accessories", label: "Men's Accessories", icon: "wallet",  blurb: "Leather wallets and everyday carry", hsn: "42023120", gst: 18 }
   ],
 
+  // ---- ASIN (invoice par item ke neeche chhapta hai) ----
+  // Database ke product ke description me ASIN na ho to bhi naam se yahan se mil jaata hai. Naya product jodo to yahan ek line badhao.
+  // all = naam me ye sab shabd hone chahiye (chhote akshar, bina space / symbol ke).
+  asinMap: [
+    { all: ["organiczingcoffee"], asin: "B0CM9HPFRZ" },
+    { all: ["avimee", "shakuntala"], asin: "B0BNB515G5" },
+    { all: ["radico", "colourme"], asin: "B00DJ53K00" },
+    { all: ["vilvah", "milk"], asin: "B0FQJXH17C" },
+    { all: ["facescanada", "roseglow"], asin: "B0CXY55VHG" },
+    { all: ["hornbull", "trifoldleatherwallet"], asin: "B077K2MYMK" },
+    { all: ["hornbull", "steve"], asin: "B09Q996C69" },
+    { all: ["hornbull", "trifoldgenuine"], asin: "B09QPVPPJT" },
+    { all: ["wildhorn", "style1"], asin: "B08P5ML6GK" },
+    { all: ["wildhorn", "style2"], asin: "B08P5M592H" },
+    { all: ["urbanforest", "oliver"], asin: "B0C2C2TRL8" }
+  ],
+
   // ---- Database ----
   useDatabase: true
 

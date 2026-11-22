@@ -80,3 +80,6 @@ CREATE TABLE IF NOT EXISTS product_images (
   data       TEXT NOT NULL,              -- base64
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Invoice ke jaari options (verify link par wahi invoice dikhane ke liye). Function apne aap bhi bana leta hai.
+CREATE TABLE IF NOT EXISTS invoice_opts (order_no TEXT PRIMARY KEY, opts TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));

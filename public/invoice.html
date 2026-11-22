@@ -100,7 +100,8 @@
     .inv .sign .line { border-top: 1px solid #4a566e; padding-top: 4px; font-weight: 600; font-size: 12.5px; color: var(--inv-navy); }
     .inv .sign .line small { display: block; font-weight: 400; color: #4a566e; }
     .inv .thanks { margin-top: 13px; text-align: center; font-size: 11.5px; color: #7a5d12; border-top: 3px double var(--inv-gold); padding-top: 8px; letter-spacing: .03em; }
-    .inv .vfy { margin-top: 4px; font-size: 10.5px; color: #55607a; word-break: break-all; text-transform: none; letter-spacing: 0; }
+    .inv .vfy { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: left; font-size: 10px; line-height: 1.35; color: #55607a; word-break: break-all; text-transform: none; letter-spacing: 0; }
+    .inv .vqr svg { width: 54px; height: 54px; display: block; }
     .inv .thanks b { font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
     .inv .thanks a { color: #1a4fa0; text-decoration: underline; font-weight: 600; letter-spacing: .01em; text-transform: none; }
 
@@ -127,7 +128,7 @@
     <button class="btn navy" id="printBtn" type="button">Print / Save as PDF</button>
     <a class="btn" id="backLink" href="shop.html">Back to shop</a>
     <a class="btn" id="ordersLink" href="account.html">My orders</a>
-    <p class="hint">Tip: in the print window choose "Save as PDF" to download the invoice.</p>
+    <p class="hint" id="barHint">Tip: in the print window choose Destination "Save as PDF" (Chrome / Edge). Do not use "Microsoft Print to PDF", it removes the clickable links. The QR code on the invoice always works.</p>
   </div>
 
   <div class="panel" id="panel" hidden>
@@ -161,6 +162,7 @@
   <div class="sheet"><div id="out"><p style="padding:30px;text-align:center">Loading invoice...</p></div></div>
   <script src="js/config.js"></script>
   <script src="js/common.js"></script>
+  <script src="js/qrcode.js"></script>
   <script src="js/invoice.js"></script>
   <script>
     (async function () {
@@ -172,9 +174,10 @@
         let bt = o.customer_type, bn = o.biz_name, bg = o.gstin, nt = o.notes;
         const m = /^\[B2B\] (.*?) \| ([0-9A-Z]{15})(?: \| (.*))?$/.exec(String(nt || "")); // migrate_003 se pehle ke orders
         if (!bg && m) { bt = "business"; bn = m[1]; bg = m[2]; nt = m[3] || ""; }
-        return { customerType: bt === "business" ? "business" : "retail", biz: bt === "business" ? { name: bn, gstin: bg } : null, vk: o.vk || "", no: o.order_no, invoiceNo: o.invoice_no, ts: Date.parse(String(o.created_at).replace(" ", "T") + "Z"), name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: nt, shipping: o.shipping, lines };
+        return { customerType: bt === "business" ? "business" : "retail", biz: bt === "business" ? { name: bn, gstin: bg } : null, vk: o.vk || "", srvOpts: o.opts || null, no: o.order_no, invoiceNo: o.invoice_no, ts: Date.parse(String(o.created_at).replace(" ", "T") + "Z"), name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: nt, shipping: o.shipping, lines };
       };
       let order = null;
+      const verify = !!(q.get("no") && q.get("k") && !q.get("id")); // PDF ke link se khula: sirf invoice, koi edit option nahi
       try {
         if (q.get("id")) { // admin panel se
           let token = ""; try { token = sessionStorage.getItem("sris_admin") || ""; } catch (e) {}
@@ -204,18 +207,18 @@
         }
       } catch (e) { return fail("Could not load the invoice. Please try again."); }
 
-      // Har line par ASIN: order me na ho (purane orders) to product list se naam / id match karke lo
-      try {
-        const prods = await S.loadProducts(), key = (t) => String(t || "").toLowerCase().replace(/\s+/g, " ").trim();
-        (order.lines || []).forEach((l) => {
-          if (l.asin) return;
-          const p = prods.find((x) => String(x.id) === String(l.id) && key(x.name) === key(l.name)) || prods.find((x) => key(x.name) === key(l.name)) || prods.find((x) => String(x.id) === String(l.id));
-          const a = p ? S.asinOf(p) : ""; if (a) l.asin = a;
-        });
-      } catch (e) {}
+      // Har line par ASIN: order me na ho (purane orders) to product list se, phir config.js ke asinMap se naam match karke lo
+      let prods = []; try { prods = await S.loadProducts(); } catch (e) {}
+      const key = (t) => String(t || "").toLowerCase().replace(/\s+/g, " ").trim();
+      (order.lines || []).forEach((l) => {
+        if (l.asin) return;
+        const p = prods.find((x) => String(x.id) === String(l.id) && key(x.name) === key(l.name)) || prods.find((x) => key(x.name) === key(l.name)) || prods.find((x) => String(x.id) === String(l.id));
+        const a = (p ? S.asinOf(p) : "") || S.asinByName(l.name); if (a) l.asin = a;
+      });
 
       // ---------- options (customer type, date, business details) ----------
-      I.setFloor(I.ymdIST(order.ts)); // purane order ki date 365 din se peeche ho to bhi sahi date dikhe
+      const sv = order.srvOpts; // customer ne jo invoice jaari ki thi (server par saved)
+      I.setFloor([I.ymdIST(order.ts), sv && sv.date].filter(Boolean).sort()[0]); // purani date 365 din se peeche ho to bhi sahi dikhe
       const KEY = "sris_inv_opts_v1_" + (order.invoiceNo || order.no);
       const fullAddr = I.joinAddr([order.address, order.city, order.state, order.pincode]);
       const opts = { type: "retail", date: I.clampDate(I.ymdIST(order.ts)), sign: true, biz: { name: "", gstin: "", address: fullAddr, state: order.state || "", phone: order.phone || "" } };
@@ -223,7 +226,8 @@
         opts.type = "business"; opts.biz.name = order.biz.name || ""; opts.biz.gstin = order.biz.gstin || "";
         opts.biz.state = I.GST_STATES[String(opts.biz.gstin).slice(0, 2)] || opts.biz.state;
       }
-      try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") { Object.assign(opts, s, { biz: Object.assign(opts.biz, s.biz || {}) }); opts.date = I.clampDate(opts.date); } } catch (e) {}
+      if (sv && typeof sv === "object") { opts.type = sv.type === "business" && sv.biz ? "business" : "retail"; if (sv.date) opts.date = sv.date; opts.sign = sv.sign !== false; if (sv.biz) Object.assign(opts.biz, sv.biz); }
+      if (!verify) try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") { Object.assign(opts, s, { biz: Object.assign(opts.biz, s.biz || {}) }); opts.date = I.clampDate(opts.date); } } catch (e) {}
       const save = () => { try { localStorage.setItem(KEY, JSON.stringify(opts)); } catch (e) {} };
 
       const rg = I.dateRange();
@@ -278,12 +282,23 @@
       $("bs").addEventListener("change", () => { opts.biz.state = $("bs").value; render(); });
       $("bp").addEventListener("input", () => { opts.biz.phone = $("bp").value; render(); });
       $("ba").addEventListener("input", () => { opts.biz.address = $("ba").value; render(); });
-      $("printBtn").addEventListener("click", () => window.print());
+      // Print / Save dabate hi jaari invoice server par save hoti hai, taaki PDF ka verify link wahi invoice dikhaye
+      async function saveIssued() {
+        if (verify || !order.no) return;
+        const b = opts.type === "business" ? { name: opts.biz.name.trim(), gstin: String(opts.biz.gstin || "").toUpperCase(), address: opts.biz.address, state: opts.biz.state, phone: opts.biz.phone } : undefined;
+        const body = { no: order.no, opts: { type: opts.type, date: opts.date, sign: opts.sign, biz: b } };
+        const headers = { "content-type": "application/json" };
+        if (q.get("id")) { let t = ""; try { t = sessionStorage.getItem("sris_admin") || ""; } catch (e) {} headers["x-admin-token"] = t; }
+        const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 2500);
+        try { await fetch(q.get("id") ? "/api/admin/invoice-opts" : "/api/my/invoice-opts", { method: "POST", credentials: "same-origin", headers, body: JSON.stringify(body), signal: ctl.signal }); } catch (e) {} finally { clearTimeout(tm); }
+      }
+      $("printBtn").addEventListener("click", async () => { await saveIssued(); window.print(); });
 
       $("bn").value = opts.biz.name; $("bg").value = opts.biz.gstin; $("bs").value = opts.biz.state; $("bp").value = opts.biz.phone; $("ba").value = opts.biz.address;
       sync(); render();
       document.title = "Invoice " + (order.invoiceNo || order.no) + " | " + S.cfg.storeName;
-      $("bar").hidden = false; $("panel").hidden = false;
+      $("bar").hidden = false; $("panel").hidden = verify;
+      if (verify) { $("backLink").hidden = true; $("ordersLink").hidden = true; $("printBtn").textContent = "Print / Save as PDF"; $("barHint").textContent = "This is the issued tax invoice (read-only). It can be printed or saved as PDF."; }
     })();
   </script>
 </body>

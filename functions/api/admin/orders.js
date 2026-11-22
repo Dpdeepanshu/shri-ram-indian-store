@@ -1,5 +1,6 @@
 // Admin orders: GET (list ?q= ?status= / ?id=), POST (naya order jodo), PUT (status ya poora edit), DELETE (?id=)
 import { json, clean, phoneOf, invoiceKey } from "../../_lib/util.js";
+import { readOpts } from "../../_lib/invopts.js";
 import { moveStock, applyDiff } from "../../_lib/stock.js";
 const STATUSES = ["new", "confirmed", "shipped", "delivered", "cancelled"];
 const PAYMENTS = ["Cash on Delivery", "UPI", "Bank Transfer", "Other"];
@@ -9,7 +10,7 @@ export async function onRequestGet({ env, request }) {
   const u = new URL(request.url), one = u.searchParams.get("id");
   if (one !== null) {
     const row = await env.DB.prepare("SELECT * FROM orders WHERE id = ?").bind(parseInt(one, 10) || 0).first();
-    return row ? json({ ...row, vk: await invoiceKey(env, row.order_no) }) : json({ error: "not found" }, 404);
+    return row ? json({ ...row, vk: await invoiceKey(env, row.order_no), opts: await readOpts(env.DB, row.order_no) }) : json({ error: "not found" }, 404);
   }
   const q = clean(u.searchParams.get("q"), 60), st = u.searchParams.get("status");
   const where = [], args = [];
