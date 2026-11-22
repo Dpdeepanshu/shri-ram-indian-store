@@ -30,11 +30,21 @@ export function safeEqual(a, b) {
   return diff === 0;
 }
 
+// ---- invoice verify key: har invoice ke link ke liye secret-based token (login ke bina invoice kholne ke liye) ----
+// Secret: INVOICE_SECRET (optional) warna ADMIN_TOKEN. Dono ho to INVOICE_SECRET badalne se purane links band ho jaate hain.
+export async function invoiceKey(env, orderNo) {
+  const secret = env.INVOICE_SECRET || env.ADMIN_TOKEN || "";
+  if (!secret || !orderNo) return "";
+  const key = await crypto.subtle.importKey("raw", enc.encode("sris-invoice|" + secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return hex(await crypto.subtle.sign("HMAC", key, enc.encode(String(orderNo)))).slice(0, 24);
+}
+
 // ---- cookies / sessions ----
 export const COOKIE = "sris_session";
 export function getCookie(request, name) {
   const m = (request.headers.get("cookie") || "").split(/;\s*/).find((c) => c.startsWith(name + "="));
-  return m ? decodeURIComponent(m.slice(name.length + 1)) : "";
+  if (!m) return "";
+  try { return decodeURIComponent(m.slice(name.length + 1)); } catch (e) { return ""; }
 }
 export function sessionCookie(request, value, maxAge) {
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";

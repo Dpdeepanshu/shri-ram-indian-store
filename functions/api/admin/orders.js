@@ -1,5 +1,5 @@
 // Admin orders: GET (list ?q= ?status= / ?id=), POST (naya order jodo), PUT (status ya poora edit), DELETE (?id=)
-import { json, clean, phoneOf } from "../../_lib/util.js";
+import { json, clean, phoneOf, invoiceKey } from "../../_lib/util.js";
 import { moveStock, applyDiff } from "../../_lib/stock.js";
 const STATUSES = ["new", "confirmed", "shipped", "delivered", "cancelled"];
 const PAYMENTS = ["Cash on Delivery", "UPI", "Bank Transfer", "Other"];
@@ -9,7 +9,7 @@ export async function onRequestGet({ env, request }) {
   const u = new URL(request.url), one = u.searchParams.get("id");
   if (one !== null) {
     const row = await env.DB.prepare("SELECT * FROM orders WHERE id = ?").bind(parseInt(one, 10) || 0).first();
-    return row ? json(row) : json({ error: "not found" }, 404);
+    return row ? json({ ...row, vk: await invoiceKey(env, row.order_no) }) : json({ error: "not found" }, 404);
   }
   const q = clean(u.searchParams.get("q"), 60), st = u.searchParams.get("status");
   const where = [], args = [];
@@ -24,7 +24,7 @@ async function buildLines(env, items) {
   const arr = (Array.isArray(items) ? items : []).slice(0, 50);
   const ids = [...new Set(arr.map((i) => parseInt(i && i.id, 10)).filter(Number.isInteger))];
   if (!ids.length) return { error: "Add at least one item" };
-  const { results } = await env.DB.prepare(`SELECT id, name, category, price FROM products WHERE id IN (${ids.map(() => "?").join(",")})`).bind(...ids).all();
+  const { results } = await env.DB.prepare(`SELECT id, name, category, price, description FROM products WHERE id IN (${ids.map(() => "?").join(",")})`).bind(...ids).all();
   const by = new Map(results.map((r) => [r.id, r]));
   const lines = [];
   for (const i of arr) {
@@ -36,7 +36,8 @@ async function buildLines(env, items) {
     if (!Number.isInteger(qty) || qty < 1 || qty > 1000) return { error: "Quantity must be 1 or more" };
     const price = i.price === "" || i.price == null ? p.price : Number(i.price);
     if (!Number.isFinite(price) || price < 0 || price > 10000000) return { error: "Invalid price" };
-    lines.push({ id: p.id, name: p.name, category: p.category, price: Math.round(price), qty });
+    const am = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || ""));
+    lines.push({ id: p.id, name: p.name, asin: am ? am[1].toUpperCase() : "", category: p.category, price: Math.round(price), qty });
   }
   return { lines };
 }

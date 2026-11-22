@@ -67,7 +67,10 @@
   }
 
   // ---------- Cart ----------
-  const MAX_QTY = 20;
+  // Retail customer: ek item ki max quantity cfg.maxQtyRetail (20). Business (GST) customer: cfg.maxQtyBusiness (100).
+  // Cart me hamesha business wali limit tak quantity rehti hai; checkout par customer type ke hisaab se kam ho jaati hai.
+  const MAX_RETAIL = Number(cfg.maxQtyRetail) || 20, MAX_QTY = Number(cfg.maxQtyBusiness) || 100;
+  const maxQtyFor = (type) => (type === "business" ? MAX_QTY : MAX_RETAIL);
   function getCart() {
     let raw = {};
     try { raw = JSON.parse(localStorage.getItem(CART_KEY)) || {}; } catch (e) {}
@@ -81,9 +84,11 @@
   function addToCart(id, qty) {
     const c = getCart(), cur = c[id] || 0, want = cur + (qty || 1);
     c[id] = Math.min(MAX_QTY, want); setCart(c);
-    toast(want > MAX_QTY ? "Maximum " + MAX_QTY + " per item" : "Added to cart");
+    toast(want > MAX_QTY ? "Maximum " + MAX_QTY + " per item" : want > MAX_RETAIL ? "Added. Retail orders allow " + MAX_RETAIL + " per item, business (GST) orders up to " + MAX_QTY + "." : "Added to cart");
   }
   function changeQty(id, d) { const c = getCart(); c[id] = Math.min(MAX_QTY, (c[id] || 0) + d); if (c[id] <= 0) delete c[id]; setCart(c); }
+  // Customer ne keyboard se quantity likhi: sahi number rakho, 0 / khaali ho to hata do
+  function setQty(id, q) { const c = getCart(), n = Math.floor(Number(q)); if (!(n > 0)) delete c[id]; else c[id] = Math.min(MAX_QTY, n); setCart(c); return c[id] || 0; }
   function clearCart() { setCart({}); }
   function cartCount() { return Object.values(getCart()).reduce((a, b) => a + b, 0); }
   function updateCartCount() { document.querySelectorAll("[data-cart-count]").forEach((el) => (el.textContent = cartCount())); }
@@ -113,6 +118,8 @@
     Object.keys(c).forEach((id) => { if (!all.some((p) => String(p.id) === id)) { delete c[id]; changed = true; } });
     if (changed) setCart(c);
   }
+  // ASIN: products.json me "asin" field, ya description ke end me "ASIN: B0XXXXXXXX" (database products)
+  function asinOf(p) { if (!p) return ""; if (p.asin) return String(p.asin).toUpperCase(); const m = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || "")); return m ? m[1].toUpperCase() : ""; }
   function outOfStock(p) { return p.in_stock === 0 || p.in_stock === false || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0); }
   function discount(p) { return p.mrp && p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0; }
   function productCard(p) {
@@ -203,7 +210,7 @@
             <a href="privacy.html">Privacy Policy</a>
             <a href="terms.html">Terms &amp; Conditions</a>
             <a href="contact.html">Contact Us</a>
-            ${cfg.useDatabase ? '<a href="account.html">My Account &amp; Orders</a>' : ""}
+            ${cfg.useDatabase ? '<a href="account.html">My Account &amp; Orders</a><a href="account.html#orders" id="ftInvoice">My Invoices</a><a href="#" id="ftLatestInv" hidden></a>' : ""}
           </div>
           <div><h4>Contact</h4>
             <p>${esc(cfg.address)}</p>
@@ -231,7 +238,31 @@
       if (el.dataset.link === "tel") el.href = "tel:+" + cfg.whatsappNumber;
     });
     updateCartCount();
-    if (cfg.useDatabase) me().then(paintAccount); else paintAccount(null);
+    if (cfg.useDatabase) me().then((u) => { paintAccount(u); paintFooterInvoice(u); }); else paintAccount(null);
+  }
+
+  // Footer: logged-in customer ko apna sabse naya invoice seedha clickable link me dikhta hai.
+  // Pehle se saved list (10 min) use hoti hai taaki har page par server call na lage.
+  const INV_CACHE = "sris_latest_inv_v1";
+  function clearInvoiceCache() { try { sessionStorage.removeItem(INV_CACHE); } catch (e) {} }
+  async function paintFooterInvoice(u) {
+    const a = $("#ftLatestInv"); if (!a || !u) return;
+    let c = null;
+    try { c = JSON.parse(sessionStorage.getItem(INV_CACHE)); } catch (e) {}
+    if (!c || c.uid !== u.id || Date.now() - c.ts > 600000) {
+      try {
+        const r = await fetch("/api/my/orders", { credentials: "same-origin", cache: "no-store" });
+        if (!r.ok) return;
+        const list = await r.json();
+        const o = Array.isArray(list) && list.find((x) => x.status !== "cancelled");
+        c = { uid: u.id, ts: Date.now(), no: o ? o.order_no : "", inv: o ? o.invoice_no || "" : "" };
+        try { sessionStorage.setItem(INV_CACHE, JSON.stringify(c)); } catch (e) {}
+      } catch (e) { return; }
+    }
+    if (!c.no) return;
+    a.href = "invoice.html?no=" + encodeURIComponent(c.no); a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "Latest invoice" + (c.inv ? ": " + c.inv : "");
+    a.hidden = false;
   }
 
   document.addEventListener("click", (e) => {
@@ -239,6 +270,6 @@
     if (b) addToCart(b.dataset.add, 1);
   });
 
-  window.SRIS = { me, logout, STATES, MAX_QTY, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
+  window.SRIS = { clearInvoiceCache, me, logout, STATES, MAX_QTY, MAX_RETAIL, maxQtyFor, setQty, asinOf, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
   renderChrome();
 })();

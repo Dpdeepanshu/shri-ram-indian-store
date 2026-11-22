@@ -76,11 +76,18 @@
     if (gone.length) removedNote = "Removed from your cart because it is out of stock: " + gone.join(", ");
   }
 
+  // Ek item ki max quantity: retail 20, business 100 (aur stock se zyada nahi)
+  const capFor = (p) => Math.min(S.maxQtyFor(ctype()), p.stock_qty !== null && p.stock_qty !== undefined ? Math.max(1, p.stock_qty) : Infinity);
+  const cappedNote = () => {
+    const cart = S.getCart(), over = Object.keys(cart).map((id) => all.find((x) => String(x.id) === id)).filter((p) => p && cart[p.id] > capFor(p));
+    return over.length ? (ctype() === "business" ? "Maximum " + S.MAX_QTY + " per item for business orders. Quantity was reduced." : "Retail orders allow up to " + S.MAX_RETAIL + " per item (quantity was reduced). Choose Business customer (GST) above to order up to " + S.MAX_QTY + " per item.") : "";
+  };
+
   function totals() {
     const cart = S.getCart();
     const lines = Object.keys(cart).map((id) => {
       const p = all.find((x) => String(x.id) === id);
-      return p ? { p, qty: Math.min(S.MAX_QTY, cart[id]) } : null;
+      return p ? { p, qty: Math.max(1, Math.min(capFor(p), cart[id])) } : null;
     }).filter(Boolean);
     const subtotal = lines.reduce((a, l) => a + l.p.price * l.qty, 0);
     const shipping = subtotal === 0 ? 0 : subtotal >= cfg.freeShippingAbove ? 0 : cfg.shippingCharge;
@@ -93,14 +100,15 @@
     $("co").hidden = !has;
     $("emptyCart").hidden = has || loadFailed || !$("done").hidden;
     $("loadError").hidden = !loadFailed;
-    $("cartNote").hidden = !removedNote; $("cartNote").textContent = removedNote;
+    const cn = [removedNote, cappedNote()].filter(Boolean).join(" ");
+    $("cartNote").hidden = !cn; $("cartNote").textContent = cn;
     $("items").innerHTML = t.lines.map(({ p, qty }) => `
       <div class="cart-row">
         <img src="${esc(p.image || S.PLACEHOLDER)}" alt="" referrerpolicy="no-referrer" onerror="${S.imgFallback}">
         <div><a href="product.html?id=${encodeURIComponent(p.id)}" style="text-decoration:none"><b>${esc(p.name)}</b></a><br>
           <small>${S.money(p.price)} × ${qty} = ${S.money(p.price * qty)}</small><br>
           <button type="button" class="link-btn" data-rm="${esc(p.id)}">Remove</button></div>
-        <div class="qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Decrease quantity">−</button><span>${qty}</span><button type="button" data-inc="${esc(p.id)}" aria-label="Increase quantity" ${qty >= S.MAX_QTY ? "disabled" : ""}>+</button></div>
+        <div class="qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Decrease quantity">−</button><input class="qty-in" type="number" inputmode="numeric" min="1" max="${capFor(p)}" step="1" value="${qty}" data-qty="${esc(p.id)}" aria-label="Quantity (type a number)"><button type="button" data-inc="${esc(p.id)}" aria-label="Increase quantity" ${qty >= capFor(p) ? "disabled" : ""}>+</button></div>
       </div>`).join("");
     const left = cfg.freeShippingAbove - t.subtotal;
     $("summary").innerHTML = `
@@ -113,12 +121,27 @@
   $("items").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.inc) S.changeQty(b.dataset.inc, 1);
-    else if (b.dataset.dec) S.changeQty(b.dataset.dec, -1);
+    const cur = (id) => { const p = all.find((x) => String(x.id) === String(id)); return p ? Math.min(capFor(p), S.getCart()[id] || 0) : 0; };
+    if (b.dataset.inc) { const p = all.find((x) => String(x.id) === b.dataset.inc); S.setQty(b.dataset.inc, Math.min(p ? capFor(p) : S.MAX_QTY, cur(b.dataset.inc) + 1)); }
+    else if (b.dataset.dec) S.setQty(b.dataset.dec, cur(b.dataset.dec) - 1);
     else if (b.dataset.rm) { const c = S.getCart(); delete c[b.dataset.rm]; S.setCart(c); }
     else return;
     render(); showPayDetail();
   });
+
+  // Quantity keyboard se likhne ka option (sirf + / - nahi): Enter ya bahar click karne par save
+  $("items").addEventListener("change", (e) => {
+    const inp = e.target.closest("input[data-qty]"); if (!inp) return;
+    const p = all.find((x) => String(x.id) === inp.dataset.qty), n = Math.floor(Number(inp.value));
+    if (!p) return;
+    if (!(n >= 1)) { S.setQty(inp.dataset.qty, 1); } else {
+      if (n > capFor(p)) S.toast("Maximum " + capFor(p) + " per item" + (ctype() === "retail" && capFor(p) === S.MAX_RETAIL ? " for retail orders" : ""));
+      S.setQty(inp.dataset.qty, Math.min(n, capFor(p)));
+    }
+    render(); showPayDetail();
+  });
+  $("items").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("input[data-qty]")) { e.preventDefault(); e.target.blur(); } });
+  $("typeOpts").addEventListener("change", () => { render(); showPayDetail(); });
 
   // Paste ki hui values saaf karo (phone: +91, spaces, dashes; PIN: spaces)
   $("phone").addEventListener("input", (e) => { const d = S.normalizePhone(e.target.value); if (d !== e.target.value) e.target.value = d.slice(0, 10); });
@@ -159,7 +182,7 @@
       <p class="ok">Thank you, ${esc(o.name)}! ${waOnly ? "Your order is ready." : "Your order is placed."}</p>
       <p>Order number: <span class="ono">${esc(o.no)}</span>${o.invoiceNo ? `<br><small>Invoice No: ${esc(o.invoiceNo)}</small>` : ""}</p>
       ${step}
-      <div class="btns-col"><a class="btn navy" href="invoice.html?no=${encodeURIComponent(o.no)}" target="_blank">View / download invoice</a></div>
+      <div class="btns-col"><a class="btn navy" href="invoice.html?no=${encodeURIComponent(o.no)}" target="_blank" rel="noopener">View / download invoice</a></div>
       <h2>Payment: ${esc(o.payment)}</h2>
       <div class="pay-detail">${S.payDetailHtml(o.payment, o.total, o.no)}</div>
       <h2 style="margin-top:14px">Order details</h2>
@@ -186,7 +209,7 @@
           body: JSON.stringify({ orderNo: o.no, name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: o.notes, customerType: o.customerType, bizName: o.biz ? o.biz.name : "", gstin: o.biz ? o.biz.gstin : "", items: o.lines.map((l) => ({ id: l.id, qty: l.qty })) })
         });
         const d = await r.json().catch(() => ({}));
-        if (r.ok && d.ok) return { ok: true, invoiceNo: d.invoiceNo || "" };
+        if (r.ok && d.ok) return { ok: true, invoiceNo: d.invoiceNo || "", vk: d.vk || "" };
         if (r.status === 409 && d.error === "duplicate order") { o.no = orderNo(); continue; }
         if (r.status === 401) return { ok: false, error: "login" };
         return { ok: false, error: d.error || "Error " + r.status };
@@ -231,7 +254,7 @@
       no: orderNo(), ts: Date.now(), mode: sendMode === "db" ? "db" : "wa", payment: d.payment, name: d.name, phone: d.phone, address: d.address, city: d.city, state: d.state, pincode: d.pincode, notes: d.notes,
       subtotal: t.subtotal, shipping: t.shipping, total: t.total, invoiceNo: "",
       customerType: d.type, biz: d.type === "business" ? { name: d.bizName, gstin: d.gstin } : null,
-      lines: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, qty: l.qty, category: l.p.category }))
+      lines: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, asin: S.asinOf(l.p), price: l.p.price, qty: l.qty, category: l.p.category }))
     };
 
     // WhatsApp isi click me kholo (popup blocker se bachne ke liye); await ke baad popup block ho jaata hai
@@ -243,7 +266,7 @@
       $("placeBtn").textContent = "Placing order...";
       saved = await saveToDb(o);
       $("placeBtn").textContent = "Place order";
-      if (saved.ok) o.invoiceNo = saved.invoiceNo;
+      if (saved.ok) { o.invoiceNo = saved.invoiceNo; o.vk = saved.vk || ""; }
       else if (sendMode === "db") { // WhatsApp ka backup nahi hai, isliye customer ko batao aur cart rehne do
         placing = false; $("placeBtn").disabled = false; $("waBtn").disabled = false;
         const m = saved.error || "";
@@ -252,6 +275,7 @@
       }
     }
     saveLast(o);
+    S.clearInvoiceCache();
     S.clearCart();
     placing = false; $("placeBtn").disabled = false; $("waBtn").disabled = false;
     showDone(o, !!w);

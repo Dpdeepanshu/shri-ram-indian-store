@@ -13,7 +13,7 @@
 
   const off = S.discount(p), oos = S.outOfStock(p) || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0);
   const imgs = (Array.isArray(p.images) && p.images.length ? p.images : [p.image || S.PLACEHOLDER]).slice(0, 5);
-  const maxQ = p.stock_qty !== null && p.stock_qty !== undefined ? Math.max(1, Math.min(20, p.stock_qty)) : 20;
+  const maxQ = p.stock_qty !== null && p.stock_qty !== undefined ? Math.max(1, Math.min(S.MAX_QTY, p.stock_qty)) : S.MAX_QTY;
   const pageUrl = cfg.siteUrl.replace(/\/$/, "") + "/product.html?id=" + encodeURIComponent(p.id);
   const ask = `https://wa.me/${cfg.whatsappNumber}?text=${encodeURIComponent("Hello, I have a question about this product: " + p.name + " " + pageUrl)}`;
 
@@ -28,6 +28,7 @@
       <p class="tax-note">Inclusive of all taxes</p>
       ${!oos && p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 5 ? `<p class="stock-left">Only ${p.stock_qty} left in stock</p>` : ""}
       <p class="desc">${esc(p.description || "")}</p>
+      ${S.asinOf(p) ? `<p class="tax-note">ASIN: <b>${esc(S.asinOf(p))}</b></p>` : ""}
       <ul class="points">
         ${cfg.codAvailable ? `<li>${S.icon("cash")}Cash on Delivery available</li>` : ""}
         <li>${S.icon("phone")}Pay by UPI or bank transfer</li>
@@ -36,10 +37,11 @@
       </ul>
       <div class="buy">
         ${oos ? `<button class="btn" disabled>Out of stock</button>` : `
-        <input id="qty" type="number" min="1" max="${maxQ}" value="1" aria-label="Quantity">
+        <input id="qty" type="number" inputmode="numeric" min="1" max="${maxQ}" step="1" value="1" aria-label="Quantity (type a number)">
         <button class="btn navy" id="addBtn">Add to cart</button>
         <button class="btn" id="buyBtn">Buy now</button>`}
       </div>
+      ${oos ? "" : `<p class="qty-note">Type any quantity. Retail orders: up to ${S.MAX_RETAIL} per item. Business (GST) orders: up to ${S.MAX_QTY} per item.</p>`}
       <a class="btn wa" href="${ask}" target="_blank" rel="noopener">Ask on WhatsApp</a>
     </div>
   </div>`;

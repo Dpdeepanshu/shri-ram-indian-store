@@ -10,7 +10,7 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Too many attempts. Please try again in 15 minutes." }, 429);
   const u = await env.DB.prepare("SELECT id, name, email, phone, pass_hash, pass_salt, verified FROM users WHERE email = ?").bind(email).first();
   const bad = () => json({ error: "Incorrect email or password." }, 401);
-  if (!u) return bad();
+  if (!u) { await hashPassword(password, "0".repeat(32)); return bad(); } // same time lage taaki email ka pata na chale
   const { hash } = await hashPassword(password, u.pass_salt);
   if (!safeEqual(hash, u.pass_hash)) return bad();
   if (!u.verified) {

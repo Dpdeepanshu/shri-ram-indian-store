@@ -17,11 +17,24 @@
     return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate());
   }
   const dmy = (ymd) => { const p = String(ymd).split("-"); return p[2] + "/" + p[1] + "/" + p[0]; };
-  const dateRange = () => { const max = ymdIST(); return { min: shiftDays(max, -(Number(cfg.invoiceBackdateDays) || 365)), max }; };
+  let floorYmd = "";
+  const setFloor = (ymd) => { floorYmd = /^\d{4}-\d{2}-\d{2}$/.test(String(ymd || "")) ? ymd : ""; };
+  const dateRange = () => { const max = ymdIST(); let min = shiftDays(max, -(Number(cfg.invoiceBackdateDays) || 365)); if (floorYmd && floorYmd < min) min = floorYmd; return { min, max }; };
   function clampDate(ymd) {
     const r = dateRange();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ymd || ""))) return r.max;
     return ymd < r.min ? r.min : ymd > r.max ? r.max : ymd;
+  }
+
+  // ---------- address: repeated parts hata kar saaf ek line ----------
+  // Customer ne address me hi city / state / PIN likh diya ho to dobara nahi chhapta ("Kheri" jaise adhoore repeat bhi hat jaate hain)
+  function joinAddr(parts) {
+    const norm = (t) => String(t).toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const segs = [];
+    (parts || []).filter(Boolean).forEach((p) => String(p).split(/\s*[,\n]\s*/).forEach((t) => { t = t.trim().replace(/\s+/g, " "); if (t && norm(t)) segs.push(t); }));
+    const kept = [];
+    segs.forEach((t) => { if (!kept.some((k) => norm(k) === norm(t))) kept.push(t); });
+    return kept.filter((t, i) => { const n = norm(t); if (/^\d+$/.test(n)) return true; return !kept.some((k, j) => j !== i && norm(k) !== n && (" " + norm(k) + " ").includes(" " + n + " ")); }).join(", ");
   }
 
   // ---------- GSTIN ----------
@@ -64,7 +77,7 @@
     const rows = (o.lines || []).map((l) => {
       const cat = cfg.categories.find((c) => c.key === l.category) || {};
       const gst = Number(l.gst != null ? l.gst : cat.gst != null ? cat.gst : 18);
-      return { name: l.name, hsn: l.hsn || cat.hsn || "", qty: l.qty, unit: "PCS", gst, price: l.price };
+      return { name: l.name, asin: l.asin || "", hsn: l.hsn || cat.hsn || "", qty: l.qty, unit: "PCS", gst, price: l.price };
     });
     if (Number(o.shipping) > 0) rows.push({ name: "Shipping charges", hsn: cfg.shippingHsn, qty: 1, unit: "", gst: Number(cfg.shippingGst), price: Number(o.shipping) });
     rows.forEach((r) => {
@@ -96,26 +109,29 @@
     return { rows, intra, hsn, taxable: r2(taxable), tax: r2(tax), taxLines, total: r2(total), qty: rows.reduce((a, r) => a + (r.unit ? r.qty : 0), 0) };
   }
 
-  function paymentBlock(o, business, total) {
-    const qr = cfg.invoiceUpiQr ? `<div class="qrcol"><img src="${esc(cfg.invoiceUpiQr)}" alt="UPI QR code" width="104" height="104"><div class="qrcap">Scan &amp; Pay (UPI)</div></div>` : "";
+  // Retail: sirf QR (COD par bhi). Business: bank details + UPI ID/link + QR.
+  function paymentBlock(o, business, total, invNo) {
+    const qrImg = cfg.invoiceUpiQr ? `<div class="qrcol"><img src="${esc(cfg.invoiceUpiQr)}" alt="UPI QR code" width="104" height="104"><div class="qrcap">Scan &amp; Pay (UPI)</div></div>` : "";
+    const upiLink = cfg.invoiceUpiId ? `upi://pay?pa=${encodeURIComponent(cfg.invoiceUpiId)}&pn=${encodeURIComponent(cfg.storeName)}&am=${Number(total).toFixed(2)}&cu=INR&tn=${encodeURIComponent("Invoice " + invNo)}` : "";
+    const upiLine = cfg.invoiceUpiId ? `<div class="upi">UPI ID: <b>${esc(cfg.invoiceUpiId)}</b> &nbsp;<a class="upil" href="${upiLink}">Pay ${rs(total)} via UPI</a></div>` : "";
     if (business) {
-      const b = cfg.invoiceBank;
-      if ((!b || !b.account) && !qr) return "";
-      return `<div class="paybox qr">${b && b.account ? `<div style="flex:1 1 auto;min-width:0"><div class="ph">Bank Details <small>(NEFT / RTGS / IMPS)</small></div>
+      const b = cfg.invoiceBank, hasBank = b && b.account;
+      if (!hasBank && !qrImg) return "";
+      return `<div class="paybox"><div class="pb-main">${hasBank ? `<div class="phd">Bank Details <small>(NEFT / RTGS / IMPS)</small></div>
         <table class="bk">
           <tr><td>Account Name</td><td><b>${esc(b.accountName)}</b></td></tr>
           <tr><td>Bank</td><td>${esc(b.bank)}</td></tr>
           <tr><td>Account No.</td><td><b>${esc(b.account)}</b></td></tr>
           <tr><td>IFSC Code</td><td><b>${esc(b.ifsc)}</b></td></tr>
           ${b.branch ? `<tr><td>Branch</td><td>${esc(b.branch)}</td></tr>` : ""}
-        </table>
-        <div class="pn2">Please mention the invoice number in the payment remarks.</div></div>` : ""}${qr}</div>`;
+        </table>` : ""}${upiLine}
+        <div class="pn2">Please mention invoice no. ${esc(invNo)} in the payment remarks.</div></div>${qrImg}</div>`;
     }
-    if (!qr) return "";
+    if (!qrImg) return "";
     const cod = /cash/i.test(o.payment || "");
-    return `<div class="paybox qr retail">${qr}<div><div class="ph">Scan &amp; Pay <small>(UPI)</small></div>
-        <div class="pn2">${cod ? "Cash on Delivery: pay " + rs(total) + " by cash, or scan this QR with any UPI app when the parcel arrives." : "Scan this QR with any UPI app to pay " + rs(total) + "."}</div>
-        ${cfg.invoiceUpiId ? `<div class="upi">UPI ID: <b>${esc(cfg.invoiceUpiId)}</b></div>` : ""}</div></div>`;
+    return `<div class="paybox"><div class="pb-main"><div class="phd">Scan &amp; Pay <small>(UPI)</small></div>
+        <div class="pn2">${cod ? "Cash on Delivery: pay " + rs(total) + " in cash, or scan this QR with any UPI app when the parcel arrives." : "Scan this QR with any UPI app to pay " + rs(total) + "."}</div>
+        ${upiLine}</div>${qrImg}</div>`;
   }
 
   function build(o, opts) {
@@ -129,10 +145,10 @@
     const invNo = o.invoiceNo || o.no;
     const provisional = !o.invoiceNo;
     const sign = opts.sign !== false;
-    const shipAddr = [o.address, o.city, o.state, o.pincode].filter(Boolean).join(", ");
-    const shipTo = `<b class="pn">${esc(o.name)}</b><div>${esc(shipAddr)}</div><div>Mobile: ${esc(o.phone)}</div>`;
+    const shipAddr = joinAddr([o.address, o.city, o.state, o.pincode]);
+    const shipTo = `<b class="pn">${esc(o.name)}</b><div class="pa">${esc(shipAddr)}</div><div>Mobile: ${esc(o.phone)}</div>`;
     const billTo = business
-      ? `<b class="pn">${esc(biz.name)}</b>${biz.address ? `<div>${esc(biz.address)}</div>` : ""}<div><b>GSTIN:</b> ${esc(biz.gstin)} &nbsp; <b>PAN:</b> ${esc(biz.gstin.slice(2, 12))}</div><div><b>State:</b> ${esc(place)}${pcode ? " (" + pcode + ")" : ""}</div>${biz.phone ? `<div>Mobile: ${esc(biz.phone)}</div>` : ""}`
+      ? `<b class="pn">${esc(biz.name)}</b>${biz.address ? `<div class="pa">${esc(joinAddr([biz.address]))}</div>` : ""}<div><span class="k">GSTIN:</span> ${esc(biz.gstin)} &nbsp; <span class="k">PAN:</span> ${esc(biz.gstin.slice(2, 12))}</div><div><span class="k">State:</span> ${esc(place)}${pcode ? " (" + pcode + ")" : ""}</div>${biz.phone ? `<div>Mobile: ${esc(biz.phone)}</div>` : ""}`
       : shipTo;
     const dualTax = c.intra;
     const hsnRows = c.hsn.map((h) => dualTax
@@ -144,18 +160,20 @@
 
     const signBlock = `<div class="sign">
       <div class="for">For <b>${esc(cfg.storeName)}</b></div>
-      <div class="ss">${sign ? `<img class="stamp" src="${esc(cfg.invoiceStamp)}" alt="" onerror="this.style.display='none'"><img class="sig" src="${esc(cfg.invoiceSignature)}" alt="Signature" onerror="this.style.display='none'">` : ""}</div>
+      <div class="ss">${sign ? `<img class="stamp" src="${esc(cfg.invoiceStamp)}" alt="Company stamp" onerror="this.style.display='none'"><img class="sig" src="${esc(cfg.invoiceSignature)}" alt="Signature" onerror="this.style.display='none'">` : ""}</div>
       <div class="line">Authorised Signatory${cfg.signatoryName ? `<small>${esc(cfg.signatoryName)}</small>` : ""}</div>
     </div>`;
+    const site = String(cfg.siteUrl || "").replace(/\/$/, "");
+    // Is invoice ka apna link (PDF me bhi clickable): customer online verify kar sake
+    const vUrl = o.vk && o.no ? site + "/invoice.html?no=" + encodeURIComponent(o.no) + "&k=" + encodeURIComponent(o.vk) : "";
 
     return `<div class="inv">
       <div class="top">
-        <img class="lg" src="images/logo.png" alt="" width="92" height="92" onerror="this.style.display='none'">
+        <img class="lg" src="images/logo.png" alt="" width="88" height="88" onerror="this.style.display='none'">
         <div class="cop">
           <h1>${esc(cfg.storeName)}</h1>
           <div class="ad">${esc(cfg.gstAddress)}</div>
-          <div class="ct"><span><b>GSTIN:</b> ${esc(cfg.gstin)}</span><span><b>Mobile:</b> <a href="tel:+91${esc(String(cfg.invoicePhone || cfg.phoneDisplay).replace(/\D/g, "").slice(-10))}">${esc(cfg.invoicePhone || cfg.phoneDisplay)}</a></span></div>
-          <div class="ct"><span><b>Email:</b> <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></span><span><b>MSME:</b> ${esc(cfg.udyam)}</span></div>
+          <div class="ct"><span><i>GSTIN</i> ${esc(cfg.gstin)}</span><span><i>Mobile</i> <a href="tel:+91${esc(String(cfg.invoicePhone || cfg.phoneDisplay).replace(/\D/g, "").slice(-10))}">${esc(cfg.invoicePhone || cfg.phoneDisplay)}</a></span><span><i>Email</i> <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></span><span><i>MSME</i> ${esc(cfg.udyam)}</span></div>
         </div>
         <div class="ttl"><b>${provisional ? "ORDER COPY" : "TAX INVOICE"}</b><span>${provisional ? "PROVISIONAL" : "ORIGINAL FOR RECIPIENT"}</span></div>
       </div>
@@ -174,13 +192,13 @@
       </div>
       <div class="tw"><table class="it">
         <thead><tr><th class="c">#</th><th>Description of Goods</th><th>HSN</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Taxable</th><th class="r">GST</th><th class="r">Amount</th></tr></thead>
-        <tbody>${c.rows.map((r, i) => `<tr><td class="c">${i + 1}</td><td>${esc(r.name)}</td><td>${esc(r.hsn)}</td><td class="r">${r.qty}${r.unit ? " " + r.unit : ""}</td><td class="r">${num(r.rate)}</td><td class="r">${num(r.taxable)}</td><td class="r">${num(r.tax)}<small>(${r.gst}%)</small></td><td class="r">${num(r.amount)}</td></tr>`).join("")}</tbody>
+        <tbody>${c.rows.map((r, i) => `<tr><td class="c">${i + 1}</td><td class="dsc"><div class="in">${esc(r.name)}</div>${r.asin ? `<div class="asin">ASIN: <span>${esc(r.asin)}</span></div>` : ""}</td><td>${esc(r.hsn)}</td><td class="r">${r.qty}${r.unit ? " " + r.unit : ""}</td><td class="r">${num(r.rate)}</td><td class="r">${num(r.taxable)}</td><td class="r">${num(r.tax)}<small>(${r.gst}%)</small></td><td class="r">${num(r.amount)}</td></tr>`).join("")}</tbody>
         <tfoot><tr><td></td><td colspan="2"><b>SUBTOTAL</b></td><td class="r"><b>${c.qty}</b></td><td></td><td class="r"><b>${num(c.taxable)}</b></td><td class="r"><b>${num(c.tax)}</b></td><td class="r"><b>${num(c.total)}</b></td></tr></tfoot>
       </table></div>
       <div class="mid">
         <div class="left">
           <div class="words"><small>Total Amount (in words)</small><b>${words(c.total)}</b></div>
-          ${paymentBlock(o, business, c.total)}
+          ${paymentBlock(o, business, c.total, invNo)}
         </div>
         <div class="tot">
           <div><span>Taxable Amount</span><span>${rs(c.taxable)}</span></div>
@@ -199,9 +217,9 @@
         </div>
         ${signBlock}
       </div>
-      <div class="thanks">Thank you for shopping with ${esc(cfg.storeName)} &nbsp;|&nbsp; <a href="${esc(cfg.siteUrl)}" target="_blank" rel="noopener">${esc(String(cfg.siteUrl).replace(/^https?:\/\//, ""))}</a></div>
+      <div class="thanks">Thank you for shopping with <b>${esc(cfg.storeName)}</b> &nbsp;|&nbsp; <a href="${esc(site)}/" target="_blank" rel="noopener">${esc(site)}</a>${vUrl ? `<div class="vfy">Verify this invoice online: <a href="${esc(vUrl)}" target="_blank" rel="noopener">${esc(vUrl)}</a></div>` : ""}</div>
     </div>`;
   }
 
-  S.invoice = { build, compute, words, gstinValid, stateCode, GST_STATES, ymdIST, dateRange, clampDate };
+  S.invoice = { setFloor, build, compute, words, gstinValid, stateCode, GST_STATES, ymdIST, dateRange, clampDate, joinAddr };
 })();

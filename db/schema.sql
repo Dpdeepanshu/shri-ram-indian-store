@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS products (
   featured    INTEGER NOT NULL DEFAULT 0,
   active      INTEGER NOT NULL DEFAULT 1,
   images      TEXT,                      -- JSON list of photo links (1 se 5)
-  stock_qty   INTEGER,                   -- NULL = stock track nahi hota
+  stock_qty   INTEGER DEFAULT 100,           -- NULL = stock track nahi hota (naye products ka default 100)
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);

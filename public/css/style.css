@@ -227,6 +227,9 @@ table.tbl th, table.tbl td { border-bottom: 1px solid var(--line); padding: 8px;
 .done .ono { font-size: 1.3rem; font-weight: 700; color: var(--navy); user-select: all; }
 .done .btns-col { display: grid; gap: 10px; margin: 14px 0; }
 .qty button:disabled { opacity: .4; cursor: not-allowed; }
+.qty input.qty-in { width: 56px; height: 30px; padding: 2px 4px; text-align: center; font-size: .95rem; border: 1px solid #c9ced9; border-radius: 6px; -moz-appearance: textfield; }
+.qty input.qty-in::-webkit-outer-spin-button, .qty input.qty-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.qty-note { font-size: .82rem; color: var(--muted); margin-top: 8px; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .btn[disabled] { opacity: .6; cursor: wait; }
 

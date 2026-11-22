@@ -36,6 +36,11 @@ window.STORE_CONFIG = {
   bankName: "", bankAccountName: "", bankAccountNumber: "", bankIfsc: "",
   codAvailable: true,
 
+  // ---- Order quantity limit (ek item ki max quantity) ----
+  // Retail customer: 20, Business (GST) customer: 100. Cart me customer khud number type bhi kar sakta hai.
+  maxQtyRetail: 20,
+  maxQtyBusiness: 100,
+
   // ---- Invoice (order ke baad customer ko milta hai) ----
   // Website orders ki alag series rakhi hai taaki aapke manual invoices (SRIS/2627/2008...) se na takraye.
   // Database ON ho to number server se milta hai (prefix + 0001, 0002...). Prefix/start badalna ho to
@@ -45,6 +50,14 @@ window.STORE_CONFIG = {
   invoicePhone: "9598101409",              // jo number aapke invoice par chhapta hai (site ke WhatsApp number se alag hai, check karo)
   sellerState: "Uttar Pradesh",            // GSTIN 09 = Uttar Pradesh (isi state me CGST+SGST, baaki states me IGST)
   jurisdictionCity: "Lucknow",             // invoice terms me "disputes subject to ___ jurisdiction"
+  invoiceBackdateDays: 365,                // invoice date aaj se kitne din peeche tak chun sakte ho
+  signatoryName: "Himanshu Yadav (Proprietor)",
+  invoiceSignature: "images/signature.png",
+  invoiceStamp: "images/stamp.png",
+  // Payment block: Retail (COD / UPI) invoice par sirf QR. Business invoice par bank details + UPI ID + QR.
+  invoiceUpiId: "Pos.11412817@indus",
+  invoiceUpiQr: "images/upi-qr.png",       // sirf QR (crop kiya hua), bank ke poster ka baaki hissa nahi
+  invoiceBank: { accountName: "SHRI RAM INDIAN STORE", bank: "IndusInd Bank Ltd", account: "258318195522", ifsc: "INDB0000722", branch: "Jankipuram, Lucknow" },
   shippingHsn: "996812",                   // shipping charge ka SAC (courier)
   shippingGst: 18,
 

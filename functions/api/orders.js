@@ -1,7 +1,7 @@
 // POST /api/orders: order database me save karta hai.
 // Daam client se nahi, database se liye jaate hain (taaki koi daam badal na sake).
-import { json, clean, phoneOf, getUser } from "../_lib/util.js";
-import { moveStock } from "../_lib/stock.js";
+import { json, clean, phoneOf, getUser, invoiceKey } from "../_lib/util.js";
+import { moveStock, reserveStock } from "../_lib/stock.js";
 const PAYMENTS = ["Cash on Delivery", "UPI", "Bank Transfer"];
 
 export async function onRequestPost({ request, env }) {
@@ -34,7 +34,7 @@ export async function onRequestPost({ request, env }) {
     if (recent && recent.c >= 5) return json({ error: "too many orders, please try later" }, 429);
 
     const marks = ids.map(() => "?").join(",");
-    const { results } = await env.DB.prepare(`SELECT id, name, category, price, in_stock, stock_qty FROM products WHERE active = 1 AND id IN (${marks})`).bind(...ids).all();
+    const { results } = await env.DB.prepare(`SELECT id, name, category, price, in_stock, stock_qty, description FROM products WHERE active = 1 AND id IN (${marks})`).bind(...ids).all();
     const byId = new Map(results.map((r) => [r.id, r]));
 
     // same product do baar aaye to qty jod do
@@ -42,7 +42,7 @@ export async function onRequestPost({ request, env }) {
     for (const i of items) {
       const id = parseInt(i && i.id, 10), q = parseInt(i && i.qty, 10) || 0;
       if (!Number.isInteger(id) || q <= 0) continue;
-      qtyById.set(id, Math.min(20, (qtyById.get(id) || 0) + q));
+      qtyById.set(id, Math.min(business ? 100 : 20, (qtyById.get(id) || 0) + q)); // retail 20, business (GST) 100 per item
     }
 
     let subtotal = 0;
@@ -53,7 +53,8 @@ export async function onRequestPost({ request, env }) {
       if (!p.in_stock || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0)) { soldOut.push(p.name); continue; }
       if (p.stock_qty !== null && p.stock_qty !== undefined && qty > p.stock_qty) { soldOut.push(p.name + " (only " + p.stock_qty + " left)"); continue; }
       subtotal += p.price * qty;
-      lines.push({ id: p.id, name: p.name, category: p.category, price: p.price, qty });
+      const am = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || ""));
+      lines.push({ id: p.id, name: p.name, asin: am ? am[1].toUpperCase() : "", category: p.category, price: p.price, qty });
     }
     if (soldOut.length) return json({ error: "out of stock: " + soldOut.join(", ") }, 409);
     if (!lines.length) return json({ error: "no valid items" }, 400);
@@ -62,10 +63,14 @@ export async function onRequestPost({ request, env }) {
     // FREE_SHIPPING_ABOVE aur SHIPPING_CHARGE set kar do.
     const FREE_ABOVE = Number(env.FREE_SHIPPING_ABOVE) || 999, SHIPPING = env.SHIPPING_CHARGE !== undefined && env.SHIPPING_CHARGE !== "" ? Number(env.SHIPPING_CHARGE) : 60;
     const shipping = subtotal >= FREE_ABOVE ? 0 : SHIPPING;
+    // Stock pehle reserve karo (race se bachne ke liye); order save fail ho to wapas jod denge
+    const hold = await reserveStock(env.DB, lines);
+    if (!hold.ok) return json({ error: "out of stock: " + hold.name }, 409);
     const base = [orderNo, name, phone, address, city, state, pincode, payment];
     const tail = [JSON.stringify(lines), subtotal, shipping, subtotal + shipping];
     let ins;
     try {
+     try {
       ins = await env.DB.prepare(
         "INSERT INTO orders (order_no, name, phone, address, city, state, pincode, payment, notes, items, subtotal, shipping, total, customer_type, biz_name, gstin, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
       ).bind(...base, notes, ...tail, business ? "business" : "retail", bizName, gstin, user.id).run();
@@ -77,15 +82,14 @@ export async function onRequestPost({ request, env }) {
         "INSERT INTO orders (order_no, name, phone, address, city, state, pincode, payment, notes, items, subtotal, shipping, total, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
       ).bind(...base, n2, ...tail, user.id).run();
     }
-
-    await moveStock(env.DB, lines, -1); // stock ghatao (jin products ka stock_qty set hai)
+     } catch (e) { await moveStock(env.DB, hold.done, +1); throw e; } // order save nahi hua: stock wapas
 
     // Invoice number: prefix + order ki sequence (config.js ke webInvoicePrefix / webInvoiceStart jaisa)
     const prefix = env.INVOICE_PREFIX || "SRIS/WEB/2627/", start = Number(env.INVOICE_START) || 1;
     const invoiceNo = prefix + String(start - 1 + ins.meta.last_row_id).padStart(4, "0");
     await env.DB.prepare("UPDATE orders SET invoice_no = ? WHERE id = ?").bind(invoiceNo, ins.meta.last_row_id).run();
 
-    return json({ ok: true, orderNo, invoiceNo });
+    return json({ ok: true, orderNo, invoiceNo, vk: await invoiceKey(env, orderNo) });
   } catch (e) {
     if (String(e).includes("UNIQUE")) return json({ error: "duplicate order" }, 409);
     console.error("order save failed:", e); // Cloudflare > Pages > Functions logs me dikhega (aksar migration baaki hota hai)

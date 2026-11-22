@@ -41,3 +41,30 @@ Typo: "INDIA STORE" -> "INDIAN STORE" (header, logo alt).
 - Admin panel at /admin with username + password (admin / ADMIN_TOKEN, or ADMIN_USERNAME / ADMIN_PASSWORD): dashboard, products (add, edit, delete, inline price + stock update, 1 to 5 photos), orders (search, filter, add, edit quantity / price, delete, status, invoice, CSV), customers.
 - Product page photo gallery, stock quantity (auto decrease on order, restore on cancel / delete, "Only N left").
 - DB: db/migrate_004_accounts_admin.sql (users, sessions, otps, rate_limits, product_images; orders.user_id; products.images, stock_qty).
+
+# Round 5 (invoice fixes + ASIN + quantity)
+
+- Products: har product ke description me "ASIN: B0..." jod diya (products.json, db/seed.sql). Naya field "asin" bhi hai. Sabka stock 100 (products.json + seed + schema default). Purane database ke liye db/migrate_005_asin_stock.sql chalao (ASIN judta hai + stock 100).
+- Invoice: item name ke neeche "ASIN: ..." chhapta hai (order me ho ya na ho; purane orders me product list se naam match karke aata hai). Admin / customer orders ki lines me ab asin save hota hai.
+- Quantity: checkout me quantity keyboard se likh sakte ho (sirf + / - nahi). Retail max 20 per item, Business (GST) customer max 100 per item (config.js: maxQtyRetail / maxQtyBusiness; server /api/orders par bhi wahi limit). Product page par bhi number likh sakte ho.
+- Invoice payment block wapas: config.js me invoiceUpiId, invoiceUpiQr, invoiceBank, invoiceSignature, invoiceStamp, signatoryName, invoiceBackdateDays missing the, isliye QR, bank details, sign aur stamp gayab ho gaye the. Retail (COD / UPI): sirf cropped QR + UPI ID. Business: bank details + UPI ID + "Pay via UPI" link + QR.
+- Signature: aapki handwriting ki photo se saaf transparent signature (images/signature.png). Stamp: naya professional round stamp (images/stamp.png).
+- Footer link: pura https://shri-ram-indian-store.pages.dev link ab lowercase aur clickable (PDF me bhi). Pehle uppercase ban jaata tha.
+- Address: customer ne address me hi city / state / PIN likha ho to invoice me repeat nahi hota (joinAddr).
+- Naam: lamba naam ab poora aur wrap hokar dikhta hai. Name fields par maxlength 80.
+- Look: body text pure black ki jagah naram dark slate, weights 500/600 (koi letter zyada black nahi), CSS class "ph" ka takraav theek kiya (Bank Details heading), table aur boxes polished.
+
+# Round 6 (footer invoice link + code audit)
+
+- Footer (Help column): "My Invoices" link (account.html, order history me har invoice ka button) aur login hone par "Latest invoice: SRIS/WEB/..." clickable link jo seedha us invoice ko naye tab me kholta hai. Naya order place hote hi link update ho jaata hai.
+- Invoice page: login na ho to ab "Login" button aata hai (login ke baad wapas usi invoice par). Order confirmation ka invoice link ab rel="noopener".
+- Invoice date: 365 din se purane order ki date ab galat clamp nahi hoti.
+- Stock race fix: /api/orders me stock atomically reserve hota hai (do customers ek saath last piece nahi le sakte); order save fail ho to stock wapas jud jaata hai.
+- Login: email maujood hai ya nahi, iska timing se pata nahi chalta. Kharab cookie se 500 error nahi aata.
+- robots.txt: /admin, /account.html, /login.html bhi disallow.
+
+# Round 6b (invoice PDF verify link)
+
+- Invoice ke neeche footer me us invoice ka apna link: "Verify this invoice online: https://.../invoice.html?no=ORDERNO&k=KEY". PDF me bhi clickable. Customer ya koi bhi PDF se link khol kar bina login ke wahi invoice online dekh sakta hai.
+- Link me secret key (HMAC) hai, isliye order number guess karke koi dusra invoice nahi khol sakta. Key ADMIN_TOKEN se banti hai (ya optional INVOICE_SECRET Cloudflare variable; use badalne par purane links band ho jaate hain). Naya endpoint: functions/api/invoice.js (rate limited).
+- Naya Cloudflare setting zaroori nahi; ADMIN_TOKEN pehle se set hai. Pehle se download ki hui purani PDF me ye link nahi hoga, naya download karna hoga.
