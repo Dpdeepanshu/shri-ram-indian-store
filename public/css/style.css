@@ -227,3 +227,5 @@ table.tbl th, table.tbl td { border-bottom: 1px solid var(--line); padding: 8px;
 .done .ono { font-size: 1.3rem; font-weight: 700; color: var(--navy); user-select: all; }
 .done .btns-col { display: grid; gap: 10px; margin: 14px 0; }
 .qty button:disabled { opacity: .4; cursor: not-allowed; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.btn[disabled] { opacity: .6; cursor: wait; }

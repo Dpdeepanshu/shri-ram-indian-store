@@ -28,6 +28,6 @@
     if (term) u.set("q", q.value.trim());
     history.replaceState(null, "", u.toString() ? "?" + u : location.pathname);
   }
-  [q, cat, sort].forEach((el) => el.addEventListener("input", render));
+  [q, cat, sort].forEach((el) => { el.addEventListener("input", render); el.addEventListener("change", render); });
   render();
 })();

@@ -55,6 +55,8 @@
   }
   const payChips = () => payMethods().map((m) => `<span class="chip">${icon(m.icon)}${esc(m.label.replace(" (NEFT / IMPS)", ""))}</span>`).join("");
 
+  const STATES = ["Andaman and Nicobar Islands","Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chandigarh","Chhattisgarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Goa","Gujarat","Haryana","Himachal Pradesh","Jammu and Kashmir","Jharkhand","Karnataka","Kerala","Ladakh","Lakshadweep","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Puducherry","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal"];
+
   // Phone: paste kiya hua +91 / 0 / spaces / dashes hata kar 10-digit number
   function normalizePhone(v) {
     let d = String(v == null ? "" : v).replace(/\D/g, "");
@@ -155,11 +157,11 @@
             <a href="contact.html">Contact</a>
           </nav>
           <a class="cart-link" href="checkout.html" aria-label="Cart">${icon("cart")}<span class="cart-badge" data-cart-count>0</span></a>
-          <button class="menu-btn" id="menuBtn" aria-label="Open menu">&#9776;</button>
+          <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">&#9776;</button>
         </div>`;
       const here = location.pathname.split("/").pop() || "index.html";
       h.querySelectorAll(".nav a").forEach((a) => { if (a.getAttribute("href") === here) a.classList.add("active"); });
-      $("#menuBtn").addEventListener("click", () => $("#nav").classList.toggle("open"));
+      $("#menuBtn").addEventListener("click", (e) => { const o = $("#nav").classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", o); });
     }
     const f = $("#site-footer");
     if (f) {
@@ -208,6 +210,6 @@
     if (b) addToCart(b.dataset.add, 1);
   });
 
-  window.SRIS = { MAX_QTY, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
+  window.SRIS = { STATES, MAX_QTY, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
   renderChrome();
 })();

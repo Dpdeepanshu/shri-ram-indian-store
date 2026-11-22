@@ -11,6 +11,19 @@
   function showPayDetail() { $("payDetail").innerHTML = S.payDetailHtml(chosen(), totals().total); }
   $("payOpts").addEventListener("change", showPayDetail);
 
+  $("state").innerHTML = `<option value="">Select state</option>` + S.STATES.map((x) => `<option>${esc(x)}</option>`).join("");
+  const useDb = !!cfg.useDatabase;
+  // Database ON: "Place order" (WhatsApp ke bina) + optional WhatsApp button. OFF: sirf WhatsApp.
+  $("placeBtn").textContent = useDb ? "Place order" : "Place order on WhatsApp";
+  $("placeBtn").className = "btn " + (useDb ? "navy" : "wa");
+  $("waBtn").hidden = !useDb;
+  $("placeHint").textContent = useDb
+    ? "Choose \"Place order\" and we will confirm it by phone or WhatsApp. No WhatsApp chat is needed. You get an invoice right after ordering. We never ask for card numbers, PINs or OTPs."
+    : "Your order details open in WhatsApp. We confirm the order, and the payment details if needed, over WhatsApp. We never ask for card numbers, PINs or OTPs.";
+  let mode = useDb ? "db" : "wa";
+  $("placeBtn").addEventListener("click", () => (mode = useDb ? "db" : "wa"));
+  $("waBtn").addEventListener("click", () => (mode = "wa"));
+
   // Last order (confirmation page reload / back ke baad bhi dikhe)
   const saveLast = (o) => { try { localStorage.setItem(LAST_KEY, JSON.stringify(o)); } catch (e) {} };
   const clearLast = () => { try { localStorage.removeItem(LAST_KEY); } catch (e) {} };
@@ -100,20 +113,26 @@
   function buildMessage(o) {
     const lines = o.lines.map((l) => `• ${l.name} x ${l.qty} = ${S.money(l.price * l.qty)}`).join("\n");
     const paid = o.payment === "Cash on Delivery" ? "pay on delivery" : "payment pending, details to be confirmed";
-    return `*New order: ${cfg.storeName}*\nOrder No: ${o.no}\n\n${lines}\n\nSubtotal: ${S.money(o.subtotal)}\nShipping: ${o.shipping ? S.money(o.shipping) : "Free"}\n*Total: ${S.money(o.total)}*\n\nPayment method: ${o.payment} (${paid})\n\nName: ${o.name}\nMobile: ${o.phone}\nAddress: ${o.address}, ${o.city} - ${o.pincode}${o.notes ? "\nNote: " + o.notes : ""}`;
+    return `*New order: ${cfg.storeName}*\nOrder No: ${o.no}\n\n${lines}\n\nSubtotal: ${S.money(o.subtotal)}\nShipping: ${o.shipping ? S.money(o.shipping) : "Free"}\n*Total: ${S.money(o.total)}*\n\nPayment method: ${o.payment} (${paid})\n\nName: ${o.name}\nMobile: ${o.phone}\nAddress: ${o.address}, ${o.city}, ${o.state} - ${o.pincode}${o.notes ? "\nNote: " + o.notes : ""}`;
   }
   const waUrl = (o) => `https://wa.me/${cfg.whatsappNumber}?text=${encodeURIComponent(buildMessage(o))}`;
 
-  // Order confirmation: payment details yahan rehti hain (cart clear hone ke baad bhi)
+  // Order confirmation: payment details + invoice yahan rehte hain (cart clear hone ke baad bhi)
   function showDone(o, opened) {
     $("co").hidden = true; $("emptyCart").hidden = true; $("cartNote").hidden = true; $("loadError").hidden = true;
     $("pageTitle").textContent = "Order placed";
     const rows = o.lines.map((l) => `<tr><td>${esc(l.name)} × ${l.qty}</td><td>${S.money(l.price * l.qty)}</td></tr>`).join("");
+    const waOnly = o.mode !== "db";
+    const step = waOnly
+      ? `<div class="notice"><b>One last step:</b> ${opened ? "WhatsApp should have opened with your order message. " : ""}Send the order message to us on WhatsApp so we can confirm it. If WhatsApp did not open, tap the green button below.</div>
+         <div class="btns-col"><a class="btn wa" href="${esc(waUrl(o))}" target="_blank" rel="noopener">Send order on WhatsApp</a></div>`
+      : `<div class="notice">Your order has been received. We will confirm it by phone or WhatsApp on <b>${esc(o.phone)}</b>. You do not need to send anything on WhatsApp.</div>
+         <div class="btns-col"><a class="btn wa" href="${esc(waUrl(o))}" target="_blank" rel="noopener">Message us on WhatsApp (optional)</a></div>`;
     $("done").innerHTML = `
-      <p class="ok">Thank you, ${esc(o.name)}! Your order is ready.</p>
-      <p>Order number: <span class="ono">${esc(o.no)}</span></p>
-      <div class="notice"><b>One last step:</b> ${opened ? "WhatsApp should have opened with your order message. " : ""}Send the order message to us on WhatsApp so we can confirm it. If WhatsApp did not open, tap the green button below.</div>
-      <div class="btns-col"><a class="btn wa" href="${esc(waUrl(o))}" target="_blank" rel="noopener">Send order on WhatsApp</a></div>
+      <p class="ok">Thank you, ${esc(o.name)}! ${waOnly ? "Your order is ready." : "Your order is placed."}</p>
+      <p>Order number: <span class="ono">${esc(o.no)}</span>${o.invoiceNo ? `<br><small>Invoice No: ${esc(o.invoiceNo)}</small>` : ""}</p>
+      ${step}
+      <div class="btns-col"><a class="btn navy" href="invoice.html?no=${encodeURIComponent(o.no)}" target="_blank">View / download invoice</a></div>
       <h2>Payment: ${esc(o.payment)}</h2>
       <div class="pay-detail">${S.payDetailHtml(o.payment, o.total, o.no)}</div>
       <h2 style="margin-top:14px">Order details</h2>
@@ -122,20 +141,41 @@
         <tr><td>Shipping</td><td>${o.shipping ? S.money(o.shipping) : "Free"}</td></tr>
         <tr><td><b>Total</b></td><td><b>${S.money(o.total)}</b></td></tr>
       </table>
-      <p class="hint">Delivering to: ${esc(o.name)}, ${esc(o.phone)}, ${esc(o.address)}, ${esc(o.city)} - ${esc(o.pincode)}</p>
-      <div class="btns-col"><a class="btn navy" href="shop.html" id="newOrder">Continue shopping</a></div>`;
+      <p class="hint">Delivering to: ${esc(o.name)}, ${esc(o.phone)}, ${esc(o.address)}, ${esc(o.city)}, ${esc(o.state || "")} - ${esc(o.pincode)}</p>
+      <div class="btns-col"><a class="btn" href="shop.html" id="newOrder">Continue shopping</a></div>`;
     $("done").hidden = false;
     $("newOrder").addEventListener("click", clearLast);
     window.scrollTo(0, 0);
   }
 
-  $("orderForm").addEventListener("submit", (e) => {
+  // Server par order save (database ON). Duplicate order number par naya number bana ke retry.
+  async function saveToDb(o) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+      try {
+        const r = await fetch("/api/orders", {
+          method: "POST", headers: { "content-type": "application/json" }, signal: ctl.signal,
+          body: JSON.stringify({ orderNo: o.no, name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: o.notes, items: o.lines.map((l) => ({ id: l.id, qty: l.qty })) })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) return { ok: true, invoiceNo: d.invoiceNo || "" };
+        if (r.status === 409 && d.error === "duplicate order") { o.no = orderNo(); continue; }
+        return { ok: false, error: d.error || "Error " + r.status };
+      } catch (e) { return { ok: false, error: "network" }; }
+      finally { clearTimeout(timer); }
+    }
+    return { ok: false, error: "duplicate order" };
+  }
+
+  $("orderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (placing) return;
+    if ($("company").value) return; // bot trap
     const t = totals();
     if (!t.lines.length) return;
     const d = {};
     ["name", "phone", "address", "city", "pincode", "notes"].forEach((k) => (d[k] = String($(k).value || "").trim().replace(/[ \t]+/g, " ")));
+    d.state = $("state").value;
     d.phone = S.normalizePhone(d.phone); $("phone").value = d.phone;
     d.pincode = d.pincode.replace(/\D/g, ""); $("pincode").value = d.pincode;
     d.payment = chosen();
@@ -143,32 +183,38 @@
     if (d.name.length < 2) return fail("Please enter your name.", "name");
     if (!/^[6-9]\d{9}$/.test(d.phone)) return fail("Please enter a valid 10-digit mobile number (it should start with 6, 7, 8 or 9).", "phone");
     if (d.address.length < 8) return fail("Please enter your full address (house no., street, area).", "address");
-    if (d.city.length < 2) return fail("Please enter your city and state.", "city");
+    if (d.city.length < 2) return fail("Please enter your city or town.", "city");
+    if (!d.state) return fail("Please select your state.", "state");
     if (!/^[1-9]\d{5}$/.test(d.pincode)) return fail("Please enter a valid 6-digit PIN code.", "pincode");
     $("formError").textContent = "";
 
-    placing = true; $("placeBtn").disabled = true;
+    const sendMode = useDb ? mode : "wa";
+    placing = true; $("placeBtn").disabled = true; $("waBtn").disabled = true;
     const o = {
-      no: orderNo(), ts: Date.now(), payment: d.payment, name: d.name, phone: d.phone, address: d.address, city: d.city, pincode: d.pincode, notes: d.notes,
-      subtotal: t.subtotal, shipping: t.shipping, total: t.total,
-      lines: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, qty: l.qty }))
+      no: orderNo(), ts: Date.now(), mode: sendMode === "db" ? "db" : "wa", payment: d.payment, name: d.name, phone: d.phone, address: d.address, city: d.city, state: d.state, pincode: d.pincode, notes: d.notes,
+      subtotal: t.subtotal, shipping: t.shipping, total: t.total, invoiceNo: "",
+      lines: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, qty: l.qty, category: l.p.category }))
     };
-    saveLast(o);
 
-    // WhatsApp isi click me kholo (popup blocker se bachne ke liye), page par confirmation rehta hai
+    // WhatsApp isi click me kholo (popup blocker se bachne ke liye); await ke baad popup block ho jaata hai
     let w = null;
-    try { w = window.open(waUrl(o), "_blank"); } catch (x) {}
+    if (sendMode === "wa") { try { w = window.open(waUrl(o), "_blank"); } catch (x) {} }
 
-    if (cfg.useDatabase) {
-      try {
-        fetch("/api/orders", {
-          method: "POST", keepalive: true, headers: { "content-type": "application/json" },
-          body: JSON.stringify({ orderNo: o.no, name: o.name, phone: o.phone, address: o.address, city: o.city, pincode: o.pincode, payment: o.payment, notes: o.notes, shipping: o.shipping, items: o.lines.map((l) => ({ id: l.id, qty: l.qty })) })
-        }).catch(() => {});
-      } catch (x) {}
+    let saved = null;
+    if (useDb) {
+      $("placeBtn").textContent = "Placing order...";
+      saved = await saveToDb(o);
+      $("placeBtn").textContent = "Place order";
+      if (saved.ok) o.invoiceNo = saved.invoiceNo;
+      else if (sendMode === "db") { // WhatsApp ka backup nahi hai, isliye customer ko batao aur cart rehne do
+        placing = false; $("placeBtn").disabled = false; $("waBtn").disabled = false;
+        const m = saved.error || "";
+        return fail(/out of stock/.test(m) ? "Sorry, " + m + ". Please remove it from the cart." : m === "network" ? "Could not reach the server. Please check your internet and try again, or use the WhatsApp button." : "We could not place your order right now. Please try again, or use the WhatsApp button.");
+      }
     }
+    saveLast(o);
     S.clearCart();
-    placing = false; $("placeBtn").disabled = false;
+    placing = false; $("placeBtn").disabled = false; $("waBtn").disabled = false;
     showDone(o, !!w);
   });
 

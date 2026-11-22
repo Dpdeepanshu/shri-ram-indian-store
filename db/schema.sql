@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS orders (
   phone      TEXT NOT NULL,
   address    TEXT NOT NULL,
   city       TEXT,
+  state      TEXT,
   pincode    TEXT NOT NULL,
   payment    TEXT,
   notes      TEXT,
@@ -29,6 +30,8 @@ CREATE TABLE IF NOT EXISTS orders (
   shipping   INTEGER NOT NULL DEFAULT 0,
   total      INTEGER NOT NULL,
   status     TEXT NOT NULL DEFAULT 'new',
+  invoice_no TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_phone ON orders(phone);

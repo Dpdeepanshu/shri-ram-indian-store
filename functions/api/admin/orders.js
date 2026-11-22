@@ -3,7 +3,12 @@ const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 const STATUSES = ["new", "confirmed", "shipped", "delivered", "cancelled"];
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ env, request }) {
+  const one = new URL(request.url).searchParams.get("id");
+  if (one !== null) {
+    const row = await env.DB.prepare("SELECT * FROM orders WHERE id = ?").bind(parseInt(one, 10) || 0).first();
+    return row ? json(row) : json({ error: "not found" }, 404);
+  }
   const { results } = await env.DB.prepare("SELECT * FROM orders ORDER BY id DESC LIMIT 200").all();
   return json(results);
 }

@@ -167,6 +167,34 @@ Agar yahan error aaye: Cloudflare dashboard > aapka Pages project > **Settings >
 
 ---
 
+---
+
+## Step 9B: Order WhatsApp ke bina (database ON) + Invoice
+
+`useDatabase: true` karte hi checkout par 2 button aate hain:
+- **Place order**: order seedha database me save hota hai (WhatsApp chat ki zaroorat nahi). Customer ko order number, payment details aur invoice turant milta hai. Aap admin panel > Orders me dekhte ho.
+- **Place order and send on WhatsApp**: order save bhi hota hai aur WhatsApp message bhi khulta hai.
+
+`useDatabase: false` rahe to sirf WhatsApp wala order chalega (invoice "Order copy / provisional" aata hai, final invoice number sirf database ON hone par).
+
+**Naya database (Step 8 se)**: `npm run db:schema:remote` hi kaafi hai (naye columns usme hain).
+
+**Purana database (pehle se orders table bani hai)**: ek baar yeh chalao:
+```bash
+npm run db:migrate:remote
+```
+("duplicate column name" error aaye to columns pehle se hain, aage badho.) Bina migration ke order save hoga hi nahi.
+
+**Invoice**: order ke baad customer "View / download invoice" dabata hai, print window me "Save as PDF" chunta hai. Aap admin panel > Orders > "View / print invoice" se kisi bhi order ka invoice dobara nikal sakte ho. Invoice number: `SRIS/WEB/2627/0001, 0002...` (aapke manual invoices SRIS/2627/xxxx se alag series). Badalna ho to `config.js` (`webInvoicePrefix`, `webInvoiceStart`) aur Cloudflare variables `INVOICE_PREFIX`, `INVOICE_START` dono same rakho.
+
+**GST**: UP ke customer par CGST+SGST (9%+9%), baaki states par IGST 18%. HSN/GST % `config.js` ki `categories` me hain (CA se confirm kar lo).
+
+**Variables (optional)**: Cloudflare Pages > Settings > Variables: `FREE_SHIPPING_ABOVE` (999) aur `SHIPPING_CHARGE` (60) agar config se shipping rule badlo to server me bhi badlo.
+
+**Test**: `npx wrangler pages dev public` se local chalao, `npm run db:schema:local` + `db:seed:local` ke baad ek order do aur admin me check karo (admin ke liye `.dev.vars` file me `ADMIN_TOKEN=test123` likho).
+
+---
+
 ## Step 10: Admin panel ka password set karo
 
 1. Ek lamba, mushkil password socho (jaise 16+ characters). Yahi `ADMIN_TOKEN` hai.

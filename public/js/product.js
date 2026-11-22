@@ -46,6 +46,13 @@
     document.getElementById("buyBtn").addEventListener("click", () => { S.addToCart(p.id, qty()); location.href = "checkout.html"; });
   }
 
+  try {
+    const ld = { "@context": "https://schema.org", "@type": "Product", name: p.name, description: p.description || p.name, category: S.categoryLabel(p.category),
+      image: /^https?:/.test(p.image || "") ? p.image : cfg.siteUrl.replace(/\/$/, "") + "/" + String(p.image || "images/placeholder.svg").replace(/^\//, ""),
+      offers: { "@type": "Offer", url: pageUrl, priceCurrency: "INR", price: String(p.price), availability: oos ? "https://schema.org/OutOfStock" : "https://schema.org/InStock", itemCondition: "https://schema.org/NewCondition" } };
+    const sc = document.createElement("script"); sc.type = "application/ld+json"; sc.textContent = JSON.stringify(ld); document.head.appendChild(sc);
+  } catch (e) {}
+
   const rel = all.filter((x) => x.category === p.category && x.id !== p.id).slice(0, 4);
   if (rel.length) {
     document.getElementById("related").innerHTML = rel.map(S.productCard).join("");

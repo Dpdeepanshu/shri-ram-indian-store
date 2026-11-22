@@ -2,7 +2,24 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 /admin.html
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
+
+/invoice.html
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
+/checkout.html
+  X-Robots-Tag: noindex
+
+/data/*
+  Cache-Control: no-cache
+
+/js/*
+  Cache-Control: no-cache
+
+/css/*
+  Cache-Control: no-cache

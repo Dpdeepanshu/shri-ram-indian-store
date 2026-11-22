@@ -11,7 +11,8 @@ Plain HTML/CSS/JS ecommerce site. Hosting, HTTPS aur database sab free (GitHub +
 | Home | `public/index.html` |
 | Shop (search, filter, sort) | `public/shop.html` |
 | Product detail | `public/product.html?id=` |
-| Cart + Checkout (WhatsApp order) | `public/checkout.html` |
+| Cart + Checkout (WhatsApp or database order) | `public/checkout.html` |
+| Invoice (print / PDF) | `public/invoice.html`, `public/js/invoice.js` |
 | About, Contact | `public/about.html`, `public/contact.html` |
 | Payment Methods | `public/payments.html` |
 | Shipping & Returns, Privacy, Terms | `public/shipping-returns.html`, `privacy.html`, `terms.html` |

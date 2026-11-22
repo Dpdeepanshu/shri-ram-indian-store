@@ -113,16 +113,21 @@
         let items = []; try { items = JSON.parse(o.items); } catch (e) {}
         const when = new Date(o.created_at.replace(" ", "T") + "Z").toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
         return `<div class="order-card">
-          <header><b>${esc(o.order_no)}</b><span>${esc(when)}</span>
+          <header><b>${esc(o.order_no)}</b>${o.invoice_no ? `<span>Invoice ${esc(o.invoice_no)}</span>` : ""}<span>${esc(when)}</span>
             <select data-order="${o.id}" style="width:auto">${STATUS.map((s) => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></header>
           <div><b>${esc(o.name)}</b> • <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></div>
-          <div>${esc(o.address)}, ${esc(o.city || "")} - ${esc(o.pincode)}</div>
+          <div>${esc(o.address)}, ${esc(o.city || "")}${o.state ? ", " + esc(o.state) : ""} - ${esc(o.pincode)}</div>
           <div style="margin:6px 0">${items.map((i) => `${esc(i.name)} x ${i.qty}`).join("<br>")}</div>
           <div><b>Total: ${S.money(o.total)}</b> (shipping ${S.money(o.shipping)}) • ${esc(o.payment || "")}${o.notes ? " • Note: " + esc(o.notes) : ""}</div>
+          <div style="margin-top:8px"><button class="link-btn" data-inv="${o.id}">View / print invoice</button> • <a href="https://wa.me/91${esc(o.phone)}" target="_blank" rel="noopener">WhatsApp customer</a></div>
         </div>`;
       }).join("") || "<p class='empty'>No orders yet.</p>";
     } catch (err) { box.innerHTML = `<p class="empty">${esc(err.message)}</p>`; }
   }
+  $("oList").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-inv]");
+    if (b) window.open("invoice.html?id=" + encodeURIComponent(b.dataset.inv), "_blank"); // noopener nahi: token wala sessionStorage naye tab me copy hota hai
+  });
   $("oList").addEventListener("change", async (e) => {
     const sel = e.target;
     if (!sel.dataset.order) return;
