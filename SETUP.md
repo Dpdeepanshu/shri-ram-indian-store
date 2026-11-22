@@ -43,7 +43,7 @@ Sirf yeh jagah badalni hain. Poori site me apne aap lag jaayega.
 | Site ka link | `public/js/config.js` | `siteUrl` (Step 6 ke baad asli link) |
 | Categories | `public/js/config.js` | `categories` (naam, icon, chhoti line) |
 | Products | `public/data/products.json` (ya admin panel) | naam, price, mrp, image, description |
-| Product photos | `public/images/` folder | photo daalo, products me `images/photo.jpg` likho (abhi sab products `images/placeholder.svg` use karte hain) |
+| Product photos | `public/images/` folder | photo daalo, products me `images/photo.jpg` likho (kuch products ki photo online link se aa rahi hai, `PRODUCTS-LIST.md` dekho) |
 | About text | `public/about.html` | `EDIT` comment ke neeche ka text |
 | Policies | `shipping-returns.html`, `privacy.html`, `terms.html` | sample text hai, apne hisaab se check/badlo |
 | SEO link | `public/sitemap.xml`, `public/robots.txt` | `shriramindianstore.pages.dev` ko asli link se badlo |
@@ -153,7 +153,7 @@ npx wrangler d1 create shriram-store-db
    npm run db:schema:remote
    npm run db:seed:remote
    ```
-   (`seed` sirf ek baar chalana. Baad me admin panel se sample products hatakar apne daalna.)
+   (`seed` sirf ek baar chalana. Isme ab 11 asli products hain; baaki admin panel se add karo.)
 3. `public/js/config.js` me `useDatabase: true` karo.
 4. Push karo:
    ```bash

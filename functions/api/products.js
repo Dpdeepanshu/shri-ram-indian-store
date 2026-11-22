@@ -1,4 +1,4 @@
-// GET /api/products   (optional ?category=clothing)
+// GET /api/products   (optional ?category=beauty)
 // D1 binding ka naam "DB" hona chahiye (wrangler.toml me set hai)
 export async function onRequestGet({ env, request }) {
   try {

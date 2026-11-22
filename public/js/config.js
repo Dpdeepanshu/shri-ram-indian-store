@@ -5,7 +5,7 @@
 window.STORE_CONFIG = {
   // ---- Brand ----
   storeName: "SHRI RAM INDIAN STORE",
-  tagline: "Clothing, beauty, kitchenware, fashion jewellery and accessories from one trusted store in Lucknow.",
+  tagline: "Hair care, skincare, makeup and leather accessories for men from one trusted store in Lucknow.",
   topbarText: "Delivery across India  |  Cash on Delivery and UPI accepted",
 
   // ---- Business registrations (GST certificate aur Udyam certificate se) ----
@@ -52,10 +52,9 @@ window.STORE_CONFIG = {
 
   // ---- Categories (key chhoti english me rakho; icon = common.js ke ICONS me se naam) ----
   categories: [
-    { key: "clothing",    label: "Clothing",          icon: "dress",   blurb: "Kurtis, sarees and everyday wear" },
-    { key: "beauty",      label: "Daily Use Beauty",  icon: "beauty",  blurb: "Skin, hair and grooming essentials" },
-    { key: "kitchenwear", label: "Kitchenwear",       icon: "kitchen", blurb: "Cookware and kitchen basics" },
-    { key: "jewellery",   label: "Fashion Jewellery", icon: "ring",    blurb: "Earrings, necklace sets and bangles" },
+    { key: "beauty",      label: "Hair & Body Care",  icon: "beauty",  blurb: "Hair oil, cleanser and hair colour" },
+    { key: "skincare",    label: "Skincare",          icon: "beauty",  blurb: "Serums, masks and glow essentials" },
+    { key: "makeup",      label: "Makeup",            icon: "beauty",  blurb: "Foundation, strobe cream and kits" },
     { key: "accessories", label: "Men's Accessories", icon: "wallet",  blurb: "Leather wallets and everyday carry" }
   ],
 

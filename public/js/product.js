@@ -17,7 +17,7 @@
 
   box.innerHTML = `<div class="crumbs"><a href="index.html">Home</a> / <a href="shop.html">Shop</a> / <a href="shop.html?cat=${esc(p.category)}">${esc(S.categoryLabel(p.category))}</a></div>
   <div class="pd">
-    <div class="pd-img"><img src="${esc(p.image || S.PLACEHOLDER)}" alt="${esc(p.name)}" onerror="${S.imgFallback}"></div>
+    <div class="pd-img"><img src="${esc(p.image || S.PLACEHOLDER)}" alt="${esc(p.name)}" referrerpolicy="no-referrer" onerror="${S.imgFallback}"></div>
     <div class="pd-info">
       <span class="cat" style="color:var(--gold-deep);font-weight:600">${esc(S.categoryLabel(p.category))}</span>
       <h1>${esc(p.name)}</h1>

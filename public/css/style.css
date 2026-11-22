@@ -214,3 +214,7 @@ table.tbl th, table.tbl td { border-bottom: 1px solid var(--line); padding: 8px;
 
 /* logo files are always shown as a circle, even if a square logo with white corners is dropped in */
 .brand img, .footer-brand img, .hero-seal img { border-radius: 50%; object-fit: cover; }
+
+/* mobile fix: lambe email / GSTIN / address screen se bahar na jaayein */
+.prose td, .prose th, .kv td, .box { overflow-wrap: anywhere; min-width: 0; }
+.prose td:first-child, .kv td:first-child { overflow-wrap: normal; }

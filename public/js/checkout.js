@@ -27,7 +27,7 @@
     $("emptyCart").hidden = has;
     $("items").innerHTML = t.lines.map(({ p, qty }) => `
       <div class="cart-row">
-        <img src="${esc(p.image || S.PLACEHOLDER)}" alt="" onerror="${S.imgFallback}">
+        <img src="${esc(p.image || S.PLACEHOLDER)}" alt="" referrerpolicy="no-referrer" onerror="${S.imgFallback}">
         <div><a href="product.html?id=${encodeURIComponent(p.id)}" style="text-decoration:none"><b>${esc(p.name)}</b></a><br>
           <small>${S.money(p.price)} × ${qty} = ${S.money(p.price * qty)}</small><br>
           <button class="link-btn" data-rm="${esc(p.id)}">Remove</button></div>

@@ -35,7 +35,9 @@ export async function onRequestPost({ request, env }) {
     }
     if (!lines.length) return json({ error: "no valid items" }, 400);
 
-    const shipping = Math.min(Math.max(parseInt(b.shipping, 10) || 0, 0), 500);
+    // Shipping server par nikalta hai (config.js ke freeShippingAbove / shippingCharge jaisa hi rakho)
+    const FREE_ABOVE = 999, SHIPPING = 60;
+    const shipping = subtotal >= FREE_ABOVE ? 0 : SHIPPING;
     await env.DB.prepare(
       "INSERT INTO orders (order_no, name, phone, address, city, pincode, payment, notes, items, subtotal, shipping, total) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
     ).bind(orderNo, name, phone, address, city, pincode, payment, notes, JSON.stringify(lines), subtotal, shipping, subtotal + shipping).run();

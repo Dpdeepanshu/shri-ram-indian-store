@@ -68,6 +68,11 @@
   let _cache = null;
   async function loadProducts() {
     if (_cache) return _cache;
+    const all = await loadProductsRaw();
+    pruneCart(all);
+    return all;
+  }
+  async function loadProductsRaw() {
     if (cfg.useDatabase) {
       try {
         const r = await fetch("/api/products");
@@ -78,6 +83,12 @@
     _cache = await r.json();
     return _cache;
   }
+  // cart me purane/hate hue products ke ids ho sakte hain; unhe hata do taaki cart count galat na dikhe
+  function pruneCart(all) {
+    const c = getCart(); let changed = false;
+    Object.keys(c).forEach((id) => { if (!all.some((p) => String(p.id) === id)) { delete c[id]; changed = true; } });
+    if (changed) setCart(c);
+  }
   function outOfStock(p) { return p.in_stock === 0 || p.in_stock === false; }
   function discount(p) { return p.mrp && p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0; }
   function productCard(p) {
@@ -86,7 +97,7 @@
     return `<article class="card">
       <a href="${link}" class="thumb">
         ${off ? `<span class="badge">${off}% OFF</span>` : ""}
-        <img src="${esc(p.image || PLACEHOLDER)}" alt="${esc(p.name)}" loading="lazy" onerror="${imgFallback}">
+        <img src="${esc(p.image || PLACEHOLDER)}" alt="${esc(p.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="${imgFallback}">
       </a>
       <div class="body">
         <span class="cat">${esc(categoryLabel(p.category))}</span>
