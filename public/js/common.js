@@ -25,7 +25,8 @@
     phone: "M8 3h8v18H8zM11 18h2",
     bank: "M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18",
     check: "M5 12l4.5 4.5L19 7",
-    user: "M12 12a4 4 0 1 0 .01 0M4 21c0-4 3.6-7 8-7s8 3 8 7"
+    user: "M12 12a4 4 0 1 0 .01 0M4 21c0-4 3.6-7 8-7s8 3 8 7",
+    search: "M11 4a7 7 0 1 0 .01 0M16.5 16.5L21 21"
   };
   const icon = (n) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n] || ICONS.check}"/></svg>`;
 
@@ -121,6 +122,24 @@
   // ASIN: products.json me "asin" field, ya description ke end me "ASIN: B0XXXXXXXX" (database products)
   const nkey = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]/g, "");
   function asinByName(name) { const k = nkey(name); const e = (cfg.asinMap || []).find((x) => x.all.every((w) => k.includes(w))); return e ? e.asin : ""; }
+  // ---- Search: naam, description, category, ASIN, model (jaise WH1173), price; sab shabd kahin bhi ho (AND), spelling ke symbol ignore ----
+  const sNorm = (t) => String(t == null ? "" : t).toLowerCase().replace(/[^a-z0-9\u0900-\u097f]+/g, " ").trim();
+  function searchScore(p, term) {
+    const toks = sNorm(term).split(" ").filter(Boolean);
+    if (!toks.length) return 1;
+    const asin = asinOf(p).toLowerCase(), name = sNorm(p.name), all = sNorm([p.name, categoryLabel(p.category), p.category, p.description, asin, p.price, p.mrp].join(" "));
+    const squashed = all.replace(/ /g, ""); // "wh 1173" / "wh1173" dono mile
+    let score = 0;
+    for (const t of toks) {
+      if (asin && asin === t) score += 50;
+      else if (name.split(" ").some((w) => w.startsWith(t))) score += 10;
+      else if (all.includes(t)) score += 3;
+      else if (squashed.includes(t)) score += 1;
+      else return 0;
+    }
+    return score;
+  }
+  const matchProduct = (p, term) => searchScore(p, term) > 0;
   function asinOf(p) { if (!p) return ""; if (p.asin) return String(p.asin).toUpperCase(); const m = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || "")); return m ? m[1].toUpperCase() : asinByName(p.name); }
   function outOfStock(p) { return p.in_stock === 0 || p.in_stock === false || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0); }
   function discount(p) { return p.mrp && p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0; }
@@ -150,7 +169,10 @@
   }
   async function logout() {
     try { await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }); } catch (e) {}
-    _me = null; location.href = "index.html";
+    _me = null;
+    // shared device par pichle customer ka order / address na dikhe
+    try { localStorage.removeItem("sris_last_order_v1"); sessionStorage.removeItem(INV_CACHE); Object.keys(localStorage).filter((k) => k.indexOf("sris_inv") === 0).forEach((k) => localStorage.removeItem(k)); } catch (e) {}
+    location.href = "index.html";
   }
   function paintAccount(u) {
     const a = $("#acctLink"), m = $("#acctNav");
@@ -194,7 +216,8 @@
           <a class="acct-link" id="acctLink" href="login.html">Login</a>
           <a class="cart-link" href="checkout.html" aria-label="Cart">${icon("cart")}<span class="cart-badge" data-cart-count>0</span></a>
           <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">&#9776;</button>
-        </div>`;
+        </div>
+        ${/(^|\/)shop(\.html)?$/.test(location.pathname) ? "" : `<form class="hsearch" action="shop.html" role="search"><input name="q" type="search" placeholder="Search products, brand or ASIN" aria-label="Search products" maxlength="80" autocomplete="off"><button type="submit" aria-label="Search">${icon("search")}</button></form>`}`;
       const here = location.pathname.split("/").pop() || "index.html";
       h.querySelectorAll(".nav a").forEach((a) => { if (a.getAttribute("href") === here) a.classList.add("active"); });
       $("#menuBtn").addEventListener("click", (e) => { const o = $("#nav").classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", o); });
@@ -272,6 +295,6 @@
     if (b) addToCart(b.dataset.add, 1);
   });
 
-  window.SRIS = { asinByName, clearInvoiceCache, me, logout, STATES, MAX_QTY, MAX_RETAIL, maxQtyFor, setQty, asinOf, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
+  window.SRIS = { searchScore, matchProduct, asinByName, clearInvoiceCache, me, logout, STATES, MAX_QTY, MAX_RETAIL, maxQtyFor, setQty, asinOf, normalizePhone, cfg, $, money, esc, icon, imgFallback, PLACEHOLDER, categoryLabel, getCart, setCart, addToCart, changeQty, clearCart, loadProducts, productCard, outOfStock, discount, toast, payMethods, payDetailHtml, payChips };
   renderChrome();
 })();

@@ -72,7 +72,7 @@
   async function loadProducts() { products = await api("/api/admin/products"); }
   function renderProducts() {
     const t = $("pSearch").value.trim().toLowerCase();
-    const list = products.filter((p) => !t || (p.name + " " + p.category).toLowerCase().includes(t));
+    const list = products.filter((p) => !t || S.matchProduct(p, t));
     $("pRows").innerHTML = list.map((p) => `<tr>
       <td>${p.id}</td>
       <td><img src="${esc((p.images && p.images[0]) || p.image || S.PLACEHOLDER)}" alt="" width="44" height="44" style="object-fit:cover;border-radius:6px" referrerpolicy="no-referrer" onerror="${S.imgFallback}"></td>

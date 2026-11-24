@@ -87,7 +87,7 @@ export async function onRequestPost({ request, env }) {
     // Invoice number: prefix + order ki sequence (config.js ke webInvoicePrefix / webInvoiceStart jaisa)
     const prefix = env.INVOICE_PREFIX || "SRIS/WEB/2627/", start = Number(env.INVOICE_START) || 1;
     const invoiceNo = prefix + String(start - 1 + ins.meta.last_row_id).padStart(4, "0");
-    await env.DB.prepare("UPDATE orders SET invoice_no = ? WHERE id = ?").bind(invoiceNo, ins.meta.last_row_id).run();
+    try { await env.DB.prepare("UPDATE orders SET invoice_no = ? WHERE id = ?").bind(invoiceNo, ins.meta.last_row_id).run(); } catch (e) { console.error("invoice no update failed", e); } // order save ho chuka hai, ise fail mat karo
 
     return json({ ok: true, orderNo, invoiceNo, vk: await invoiceKey(env, orderNo) });
   } catch (e) {

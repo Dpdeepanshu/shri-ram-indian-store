@@ -75,3 +75,25 @@ Typo: "INDIA STORE" -> "INDIAN STORE" (header, logo alt).
 - PDF link: "Microsoft Print to PDF" links hata deta hai. Chrome / Edge me Destination "Save as PDF" chuno, tab link clickable rehta hai. Isliye invoice me verify link ka QR code bhi hai (scan karne par chalta hai, kisi bhi PDF printer se).
 - Verify link (invoice.html?no=...&k=...): sirf issued invoice dikhta hai, koi edit option nahi (customer type, date, GSTIN, signature controls hidden). Sirf Print / Save as PDF.
 - Print / Save dabate hi invoice ke options (retail/business, GSTIN, date, signature) server par save hote hain (table invoice_opts apne aap ban jaati hai), taaki verify link par wahi invoice dikhe jo PDF me hai.
+
+# Round 6d
+- Order ID ab date ke bina banta hai (SRIS-K7M2QX9A). Pehle SRIS-YYMMDD-XXXXX me order wali date thi, jo invoice date (badli hui) se match nahi karti thi. Purane orders ki ID wahi rehti hai.
+
+# Round 7 (full audit)
+- Password badalne par baaki devices ke login band ho jaate hain (is device ka chalta rahega).
+- Admin ka naya order: mobile se customer account tabhi jodta hai jab us number ka ek hi verified account ho (koi profile me dusre ka number likh kar uske orders nahi dekh sakta).
+- Customer ki invoice date server par bhi check hoti hai (aaj se aage nahi, 365 din se peeche nahi).
+- Order delete karne par uski saved invoice options bhi hat jaati hain.
+- Invoice number update fail ho to bhi order save rehta hai (error nahi aata).
+- Product photo link sirf https:// (http se browser me mixed-content block hota hai).
+- Logout par pichle customer ka last-order / address / invoice cache is device se hat jaata hai.
+- HSTS header joda. Saare pages ka browser smoke test aur checkout flow test: koi JS error nahi.
+
+# Round 7b (search)
+- Shop search ab naam, brand, description, category, ASIN (description me na ho to bhi), model (WH1173 / WH 1173) aur price me dhundhta hai. Shabd kisi bhi order me ho sakte hain ("wallet black", "hornbull zip"); best match pehle aata hai.
+- Har page ke header me search box (shop page ko chhodkar) jo shop.html?q=... kholta hai.
+- Admin ki product list ki search me bhi wahi search.
+
+# Round 8 (merge + final audit)
+- "main" aur "updated" zip ko merge kiya: updated me main ki har cheez thi plus Round 6d / 7 / 7b, isliye koi conflict nahi tha. Koi code change nahi.
+- Final audit: sabhi 38 JS files ka syntax check pass, saare pages ka browser smoke test (koi JS error nahi), links / sitemap / products.json sahi, search (wallet black, hornbull zip, WH 1173) sahi chala, naya Order ID server ke check se match karta hai.

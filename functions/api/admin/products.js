@@ -1,7 +1,7 @@
 // Admin: products ka GET (sab), POST (naya), PUT (edit), PATCH (sirf price/stock), DELETE (?id=)
 import { json, clean } from "../../_lib/util.js";
 const flag = (v) => (v === true || v === 1 || v === "1" || v === "true" || v === "on" ? 1 : 0);
-const okImg = (u) => /^(https?:\/\/|\/images\/|images\/|\/api\/img\/\d+$)/.test(u);
+const okImg = (u) => /^(https:\/\/|\/images\/|images\/|\/api\/img\/\d+$)/.test(u);
 
 function parse(b) {
   let images = Array.isArray(b.images) ? b.images : (b.image ? [b.image] : []);

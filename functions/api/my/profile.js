@@ -1,5 +1,5 @@
 // PUT /api/my/profile {name, phone}  |  POST {oldPassword, newPassword}
-import { json, clean, phoneOf, getUser, hashPassword, safeEqual } from "../../_lib/util.js";
+import { json, clean, phoneOf, getUser, hashPassword, safeEqual, getCookie, COOKIE, sha256 } from "../../_lib/util.js";
 export async function onRequestPut({ request, env }) {
   const u = await getUser(env, request); if (!u) return json({ error: "login required" }, 401);
   let b; try { b = await request.json(); } catch (e) { return json({ error: "bad request" }, 400); }
@@ -18,5 +18,7 @@ export async function onRequestPost({ request, env }) {
   if (!safeEqual(hash, row.pass_hash)) return json({ error: "Current password is wrong." }, 400);
   const n = await hashPassword(np);
   await env.DB.prepare("UPDATE users SET pass_hash=?, pass_salt=? WHERE id=?").bind(n.hash, n.salt, u.id).run();
+  // password badalne par baaki jagah ke login band (is device ka chalta rahega)
+  await env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?").bind(u.id, await sha256(getCookie(request, COOKIE))).run();
   return json({ ok: true });
 }

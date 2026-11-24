@@ -14,10 +14,13 @@
 
   function render() {
     const term = q.value.trim().toLowerCase();
-    const list = all.filter((p) =>
-      (cat.value === "all" || p.category === cat.value) &&
-      (!term || (p.name + " " + (p.description || "")).toLowerCase().includes(term)));
-    if (sort.value === "low") list.sort((a, b) => a.price - b.price);
+    const score = new Map();
+    const list = all.filter((p) => {
+      if (cat.value !== "all" && p.category !== cat.value) return false;
+      const s = S.searchScore(p, term); score.set(p.id, s); return s > 0;
+    });
+    if (term && sort.value === "new") list.sort((a, b) => score.get(b.id) - score.get(a.id) || b.id - a.id); // best match pehle
+    else if (sort.value === "low") list.sort((a, b) => a.price - b.price);
     else if (sort.value === "high") list.sort((a, b) => b.price - a.price);
     else list.sort((a, b) => b.id - a.id);
     grid.innerHTML = list.map(S.productCard).join("");

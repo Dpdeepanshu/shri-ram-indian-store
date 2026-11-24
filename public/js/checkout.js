@@ -148,10 +148,10 @@
   $("pincode").addEventListener("input", (e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 6); if (d !== e.target.value) e.target.value = d; });
 
   function orderNo() {
-    const d = new Date();
-    const ymd = String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
-    const rnd = (Math.random().toString(36).slice(2) + "000000").slice(0, 5).toUpperCase();
-    return "SRIS-" + ymd + "-" + rnd;
+    // Order ID me date nahi rakhi: invoice ki date alag se badal sakti hai, isliye dono mismatch na dikhein
+    const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", b = new Uint8Array(8);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    return "SRIS-" + Array.from(b, (x) => A[x % A.length]).join("");
   }
 
   function fail(msg, field) {

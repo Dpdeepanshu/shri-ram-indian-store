@@ -58,12 +58,13 @@ export async function onRequestPost({ env, request }) {
   const { d, error } = details(b); if (error) return json({ error }, 400);
   const { lines, error: e2 } = await buildLines(env, b.items); if (e2) return json({ error: e2 }, 400);
   const subtotal = lines.reduce((a, l) => a + l.price * l.qty, 0);
-  const orderNo = "SRIS-" + new Date().toISOString().slice(2, 10).replace(/-/g, "") + "-" + Math.random().toString(36).slice(2, 7).toUpperCase();
+  const orderNo = "SRIS-" + Array.from(crypto.getRandomValues(new Uint8Array(8)), (x) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x % 32]).join("");
   // customer account: is mobile/email wale user se jod do (order history me dikhe)
   let uid = null;
   const email = clean(b.email, 120).toLowerCase();
   if (email) { const u = await env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email).first(); if (u) uid = u.id; }
-  else { const u = await env.DB.prepare("SELECT id FROM users WHERE phone = ? AND verified = 1").bind(d.phone).first(); if (u) uid = u.id; }
+  else { // sirf tab jodo jab is mobile ka ek hi verified account ho (profile me koi bhi number likh sakta hai)
+    const { results: us } = await env.DB.prepare("SELECT id FROM users WHERE phone = ? AND verified = 1 LIMIT 2").bind(d.phone).all(); if (us.length === 1) uid = us[0].id; }
   let r;
   try {
     r = await env.DB.prepare("INSERT INTO orders (order_no, name, phone, address, city, state, pincode, payment, notes, items, subtotal, shipping, total, status, customer_type, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
@@ -71,7 +72,7 @@ export async function onRequestPost({ env, request }) {
   } catch (e) { console.error(e); return json({ error: "Could not save the order (did you run the migration?)" }, 500); }
   const prefix = env.INVOICE_PREFIX || "SRIS/WEB/2627/", start = Number(env.INVOICE_START) || 1;
   const invoiceNo = prefix + String(start - 1 + r.meta.last_row_id).padStart(4, "0");
-  await env.DB.prepare("UPDATE orders SET invoice_no = ? WHERE id = ?").bind(invoiceNo, r.meta.last_row_id).run();
+  try { await env.DB.prepare("UPDATE orders SET invoice_no = ? WHERE id = ?").bind(invoiceNo, r.meta.last_row_id).run(); } catch (e) { console.error("invoice no update failed", e); }
   if (d.status !== "cancelled") await moveStock(env.DB, lines, -1);
   return json({ ok: true, id: r.meta.last_row_id, orderNo, invoiceNo });
 }
@@ -110,9 +111,10 @@ export async function onRequestPut({ env, request }) {
 export async function onRequestDelete({ env, request }) {
   const id = parseInt(new URL(request.url).searchParams.get("id"), 10);
   if (!Number.isInteger(id)) return json({ error: "id chahiye" }, 400);
-  const old = await env.DB.prepare("SELECT items, status FROM orders WHERE id = ?").bind(id).first();
+  const old = await env.DB.prepare("SELECT items, status, order_no FROM orders WHERE id = ?").bind(id).first();
   if (!old) return json({ error: "Order not found" }, 404);
   await env.DB.prepare("DELETE FROM orders WHERE id = ?").bind(id).run();
+  await env.DB.prepare("DELETE FROM invoice_opts WHERE order_no = ?").bind(old.order_no).run().catch(() => {}); // table na ho to chalta hai
   if (old.status !== "cancelled") await moveStock(env.DB, parseItems(old.items), +1);
   return json({ ok: true });
 }
