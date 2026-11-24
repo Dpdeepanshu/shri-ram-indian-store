@@ -1,5 +1,5 @@
 // Tax invoice builder (SHRI RAM INDIAN STORE). Prices site par GST-inclusive hain.
-// build(order, opts): opts = { type: "retail" | "business", date: "YYYY-MM-DD", sign: true/false,
+// build(order, opts): opts = { type: "retail" | "business", date: "YYYY-MM-DD", sign: true/false, paid: true/false,
 //                              biz: { name, gstin, address, state, phone } }
 (function () {
   const S = window.SRIS, cfg = S.cfg, esc = S.esc;
@@ -110,7 +110,12 @@
   }
 
   // Retail: sirf QR (COD par bhi). Business: bank details + UPI ID/link + QR.
-  function paymentBlock(o, business, total, invNo) {
+  // Paid invoice: payment maangne wala koi QR / link / bank block nahi, sirf "payment received" note.
+  function paymentBlock(o, business, total, invNo, paid) {
+    if (paid) {
+      return `<div class="paybox"><div class="pb-main"><div class="phd">Payment Received <small>(Paid in full)</small></div>
+        <div class="pn2">${rs(total)} received against invoice no. ${esc(invNo)}. No balance is due. Thank you!</div></div></div>`;
+    }
     const qrImg = cfg.invoiceUpiQr ? `<div class="qrcol"><img src="${esc(cfg.invoiceUpiQr)}" alt="UPI QR code" width="104" height="104"><div class="qrcap">Scan &amp; Pay (UPI)</div></div>` : "";
     const upiLink = cfg.invoiceUpiId ? `upi://pay?pa=${encodeURIComponent(cfg.invoiceUpiId)}&pn=${encodeURIComponent(cfg.storeName)}&am=${Number(total).toFixed(2)}&cu=INR&tn=${encodeURIComponent("Invoice " + invNo)}` : "";
     const upiLine = cfg.invoiceUpiId ? `<div class="upi">UPI ID: <b>${esc(cfg.invoiceUpiId)}</b> &nbsp;<a class="upil" href="${upiLink}">Pay ${rs(total)} via UPI</a></div>` : "";
@@ -150,6 +155,8 @@
     const invNo = o.invoiceNo || o.no;
     const provisional = !o.invoiceNo;
     const sign = opts.sign !== false;
+    const paid = !!opts.paid;
+    const received = paid ? c.total : 0, balance = paid ? 0 : c.total;
     const shipAddr = joinAddr([o.address, o.city, o.state, o.pincode]);
     const shipTo = `<b class="pn">${esc(o.name)}</b><div class="pa">${esc(shipAddr)}</div><div>Mobile: ${esc(o.phone)}</div>`;
     const billTo = business
@@ -180,7 +187,7 @@
           <div class="ad">${esc(cfg.gstAddress)}</div>
           <div class="ct"><span><i>GSTIN</i> ${esc(cfg.gstin)}</span><span><i>Mobile</i> <a href="tel:+91${esc(String(cfg.invoicePhone || cfg.phoneDisplay).replace(/\D/g, "").slice(-10))}">${esc(cfg.invoicePhone || cfg.phoneDisplay)}</a></span><span><i>Email</i> <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></span><span><i>MSME</i> ${esc(cfg.udyam)}</span></div>
         </div>
-        <div class="ttl"><b>${provisional ? "ORDER COPY" : "TAX INVOICE"}</b><span>${provisional ? "PROVISIONAL" : "ORIGINAL FOR RECIPIENT"}</span></div>
+        <div class="ttl"><b>${provisional ? "ORDER COPY" : "TAX INVOICE"}</b><span>${provisional ? "PROVISIONAL" : "ORIGINAL FOR RECIPIENT"}</span>${paid ? `<br><span style="border-color:#1a7a3e;color:#1a7a3e;background:#e6f4ea">PAID</span>` : ""}</div>
       </div>
       <div class="goldrule"></div>
       <div class="meta">
@@ -203,14 +210,14 @@
       <div class="mid">
         <div class="left">
           <div class="words"><small>Total Amount (in words)</small><b>${words(c.total)}</b></div>
-          ${paymentBlock(o, business, c.total, invNo)}
+          ${paymentBlock(o, business, c.total, invNo, paid)}
         </div>
         <div class="tot">
           <div><span>Taxable Amount</span><span>${rs(c.taxable)}</span></div>
           ${c.taxLines.map((t) => `<div><span>${t[0]}</span><span>${rs(t[1])}</span></div>`).join("")}
           <div class="g"><b>Total Amount</b><b>${rs(c.total)}</b></div>
-          <div><span>Received Amount</span><span>₹ 0</span></div>
-          <div><span>Balance Due</span><span>${rs(c.total)}</span></div>
+          <div${paid ? ' class="paid-row"' : ""}><span>Received Amount</span><span>${received ? rs(received) : "₹ 0"}</span></div>
+          <div${paid ? ' class="paid-row"' : ""}><span>Balance Due</span><span>${balance ? rs(balance) : "₹ 0"}</span></div>
         </div>
       </div>
       ${hsnTable}

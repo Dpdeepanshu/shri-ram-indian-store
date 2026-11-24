@@ -31,8 +31,21 @@
     .msg { font-size: .85rem; margin: 0; } .msg.bad { color: var(--red); } .msg.good { color: var(--green); }
     .sheet { max-width: 860px; margin: 0 auto 30px; padding: 0 12px; }
 
+    /* ---------- Payment Done button (admin only) ---------- */
+    .paydone-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 2px solid var(--inv-navy); border-radius: 999px;
+      background: #fff; color: var(--inv-navy);
+      font: 700 .92rem var(--sans); padding: 9px 18px;
+      cursor: pointer; transition: background .15s, color .15s;
+    }
+    .paydone-btn:hover { background: #f0f3fa; }
+    .paydone-btn.paid { background: #1a7a3e; color: #fff; border-color: #1a7a3e; }
+    .paydone-btn.paid:hover { background: #166632; }
+    .paydone-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .paydone-hint { font-size: .82rem; color: var(--muted); margin: 0; }
+
     /* ---------- invoice sheet ---------- */
-    /* Text ka rang naram dark slate (pure black nahi) aur weight 500/600, taaki koi letter zyada black na dikhe */
     .inv { --ink: #243049; --lab: #5f6b85; background: #fff; color: var(--ink); padding: 24px 28px 18px; font: 400 13px/1.45 var(--sans); box-shadow: 0 1px 8px rgba(0,0,0,.14); border-top: 6px solid var(--inv-navy); -webkit-font-smoothing: antialiased; }
     .inv b, .inv strong { font-weight: 600; }
     .inv small { font-size: 11px; }
@@ -77,6 +90,7 @@
     .inv .tot { flex: 0 1 290px; min-width: 240px; border: 1px solid var(--inv-line); border-radius: 6px; padding: 4px 0; }
     .inv .tot > div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 12px; }
     .inv .tot .g { background: var(--inv-navy); color: #fff; margin: 5px 0; padding: 8px 12px; font-size: 15px; }
+    .inv .tot .paid-row { background: #e6f4ea; color: #1a7a3e; font-weight: 700; }
     .inv .paybox { display: flex; gap: 14px; align-items: center; justify-content: space-between; border: 1px solid var(--inv-line); border-left: 4px solid var(--inv-navy); border-radius: 0 6px 6px 0; padding: 9px 12px; background: #fbfcfe; }
     .inv .pb-main { flex: 1 1 auto; min-width: 0; }
     .inv a { color: inherit; text-decoration: none; }
@@ -104,6 +118,7 @@
     .inv .vqr svg { width: 54px; height: 54px; display: block; }
     .inv .thanks b { font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
     .inv .thanks a { color: #1a4fa0; text-decoration: underline; font-weight: 600; letter-spacing: .01em; text-transform: none; }
+    .inv .wa-link { color: #1a4fa0; text-decoration: underline; font-weight: 600; }
 
     @media (max-width: 600px) {
       .inv { padding: 16px 12px; font-size: 13px; }
@@ -126,6 +141,7 @@
 <body>
   <div class="bar" id="bar" hidden>
     <button class="btn navy" id="printBtn" type="button">Print / Save as PDF</button>
+    <button class="paydone-btn" id="payDoneBtn" type="button" hidden>✓ Mark as Payment Done</button>
     <a class="btn" id="backLink" href="shop.html">Back to shop</a>
     <a class="btn" id="ordersLink" href="account.html">My orders</a>
     <p class="hint" id="barHint">Tip: in the print window choose Destination "Save as PDF" (Chrome / Edge). Do not use "Microsoft Print to PDF", it removes the clickable links. The QR code on the invoice always works.</p>
@@ -139,6 +155,7 @@
           <button type="button" data-t="business" aria-pressed="false">Business customer (GST)</button>
         </div>
         <label>Invoice date <input type="date" id="dt"></label>
+        <label>Invoice no. <input type="text" id="invNoIn" maxlength="20" placeholder="auto" style="min-width:120px"></label>
         <label class="chk"><input type="checkbox" id="sg" checked> Signature &amp; stamp</label>
       </div>
       <p class="msg" id="dtMsg"></p>
@@ -156,6 +173,7 @@
         </div>
         <p class="msg" id="bMsg" style="margin-top:8px"></p>
       </div>
+      <p class="paydone-hint" id="payHint" hidden>After the customer pays, click "Mark as Payment Done" — the invoice will show PAID with ₹0 balance and a green payment row.</p>
     </div>
   </div>
 
@@ -174,10 +192,11 @@
         let bt = o.customer_type, bn = o.biz_name, bg = o.gstin, nt = o.notes;
         const m = /^\[B2B\] (.*?) \| ([0-9A-Z]{15})(?: \| (.*))?$/.exec(String(nt || "")); // migrate_003 se pehle ke orders
         if (!bg && m) { bt = "business"; bn = m[1]; bg = m[2]; nt = m[3] || ""; }
-        return { customerType: bt === "business" ? "business" : "retail", biz: bt === "business" ? { name: bn, gstin: bg } : null, vk: o.vk || "", srvOpts: o.opts || null, no: o.order_no, invoiceNo: o.invoice_no, ts: Date.parse(String(o.created_at).replace(" ", "T") + "Z"), name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: nt, shipping: o.shipping, lines };
+        return { customerType: bt === "business" ? "business" : "retail", biz: bt === "business" ? { name: bn, gstin: bg } : null, vk: o.vk || "", srvOpts: o.opts || null, no: o.order_no, invoiceNo: o.invoice_no, ts: Date.parse(String(o.created_at).replace(" ", "T") + "Z"), name: o.name, phone: o.phone, address: o.address, city: o.city, state: o.state, pincode: o.pincode, payment: o.payment, notes: nt, shipping: o.shipping, lines, paid: o.paid === 1 || o.paid === true || (o.opts && o.opts.paid) || false };
       };
       let order = null;
       const verify = !!(q.get("no") && q.get("k") && !q.get("id")); // PDF ke link se khula: sirf invoice, koi edit option nahi
+      const isAdmin = !!q.get("id"); // sirf admin panel se khula invoice: Payment Done button sirf yahin
       try {
         if (q.get("id")) { // admin panel se
           let token = ""; try { token = sessionStorage.getItem("sris_admin") || ""; } catch (e) {}
@@ -216,18 +235,20 @@
         const a = (p ? S.asinOf(p) : "") || S.asinByName(l.name); if (a) l.asin = a;
       });
 
-      // ---------- options (customer type, date, business details) ----------
+      // ---------- options (customer type, date, invoice no, paid, business details) ----------
       const sv = order.srvOpts; // customer ne jo invoice jaari ki thi (server par saved)
-      I.setFloor([I.ymdIST(order.ts), sv && sv.date].filter(Boolean).sort()[0]); // purani date 365 din se peeche ho to bhi sahi dikhe
+      I.setFloor([I.ymdIST(order.ts), sv && sv.date].filter(Boolean).sort()[0]);
       const KEY = "sris_inv_opts_v1_" + (order.invoiceNo || order.no);
       const fullAddr = I.joinAddr([order.address, order.city, order.state, order.pincode]);
-      const opts = { type: "retail", date: I.clampDate(I.ymdIST(order.ts)), sign: true, biz: { name: "", gstin: "", address: fullAddr, state: order.state || "", phone: order.phone || "" } };
-      if (order.customerType === "business" && order.biz) { // checkout me business chuna tha
+      const opts = { type: "retail", date: I.clampDate(I.ymdIST(order.ts)), invNo: order.invoiceNo || order.no || "", sign: true, paid: !!order.paid, biz: { name: "", gstin: "", address: fullAddr, state: order.state || "", phone: order.phone || "" } };
+      if (order.customerType === "business" && order.biz) {
         opts.type = "business"; opts.biz.name = order.biz.name || ""; opts.biz.gstin = order.biz.gstin || "";
         opts.biz.state = I.GST_STATES[String(opts.biz.gstin).slice(0, 2)] || opts.biz.state;
       }
-      if (sv && typeof sv === "object") { opts.type = sv.type === "business" && sv.biz ? "business" : "retail"; if (sv.date) opts.date = sv.date; opts.sign = sv.sign !== false; if (sv.biz) Object.assign(opts.biz, sv.biz); }
+      if (sv && typeof sv === "object") { opts.type = sv.type === "business" && sv.biz ? "business" : "retail"; if (sv.date) opts.date = sv.date; if (sv.invNo) opts.invNo = sv.invNo; opts.sign = sv.sign !== false; if (sv.paid != null) opts.paid = !!sv.paid; if (sv.biz) Object.assign(opts.biz, sv.biz); }
+      const serverPaid = !!opts.paid; // jo server ne bataya (admin ne mark kiya)
       if (!verify) try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") { Object.assign(opts, s, { biz: Object.assign(opts.biz, s.biz || {}) }); opts.date = I.clampDate(opts.date); } } catch (e) {}
+      if (!isAdmin) opts.paid = serverPaid; // customer ke device ki purani copy server ke paid status ko override na kare
       const save = () => { try { localStorage.setItem(KEY, JSON.stringify(opts)); } catch (e) {} };
 
       const rg = I.dateRange();
@@ -248,8 +269,22 @@
         document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.t === opts.type)));
         $("bizF").hidden = opts.type !== "business";
         $("dt").value = opts.date; $("sg").checked = !!opts.sign;
+        $("invNoIn").value = opts.invNo || "";
+        $("invNoIn").placeholder = order.invoiceNo || order.no || "auto";
         $("dtMsg").textContent = "You can pick any date from " + rg.min.split("-").reverse().join("/") + " up to today. The invoice date should match the actual date of supply.";
         $("dtMsg").className = "msg";
+        updatePayBtn();
+      }
+
+      function updatePayBtn() {
+        const btn = $("payDoneBtn");
+        if (verify || !isAdmin) { btn.hidden = true; $("payHint").hidden = true; return; } // customer ko Payment Done button nahi dikhta
+        btn.hidden = false; $("payHint").hidden = false;
+        btn.classList.toggle("paid", !!opts.paid);
+        btn.innerHTML = opts.paid ? "✓ Payment Done (click to undo)" : "✓ Mark as Payment Done";
+        $("payHint").textContent = opts.paid
+          ? "This invoice is marked PAID. The customer sees ₹0 balance due."
+          : "After the customer pays, click \"Mark as Payment Done\" — the invoice will show PAID with ₹0 balance and a green payment row.";
       }
 
       function render() {
@@ -271,6 +306,7 @@
       });
       $("dt").addEventListener("change", () => { opts.date = I.clampDate($("dt").value); $("dt").value = opts.date; render(); });
       $("sg").addEventListener("change", () => { opts.sign = $("sg").checked; render(); });
+      $("invNoIn").addEventListener("input", () => { opts.invNo = $("invNoIn").value.trim(); render(); });
       $("bn").addEventListener("input", () => { opts.biz.name = $("bn").value; render(); });
       $("bg").addEventListener("input", () => {
         const g = $("bg").value.toUpperCase().replace(/[^0-9A-Z]/g, "").slice(0, 15);
@@ -282,21 +318,35 @@
       $("bs").addEventListener("change", () => { opts.biz.state = $("bs").value; render(); });
       $("bp").addEventListener("input", () => { opts.biz.phone = $("bp").value; render(); });
       $("ba").addEventListener("input", () => { opts.biz.address = $("ba").value; render(); });
+
+      // ---------- Payment Done toggle (admin only) ----------
+      $("payDoneBtn").addEventListener("click", async () => {
+        if (!isAdmin) return;
+        opts.paid = !opts.paid;
+        updatePayBtn();
+        render();
+        const ok = await saveIssued(); // server par persist, taaki dobara kholne par PAID dikhe
+        if (!ok) $("payHint").textContent = "Could not save to the server. The PAID status is shown here only. Please click again or check your connection.";
+      });
+
       // Print / Save dabate hi jaari invoice server par save hoti hai, taaki PDF ka verify link wahi invoice dikhaye
+      // Returns true if saved (ya save ki zaroorat nahi thi), false agar server save fail hua.
       async function saveIssued() {
-        if (verify || !order.no) return;
+        if (verify || !order.no) return true;
         const b = opts.type === "business" ? { name: opts.biz.name.trim(), gstin: String(opts.biz.gstin || "").toUpperCase(), address: opts.biz.address, state: opts.biz.state, phone: opts.biz.phone } : undefined;
-        const body = { no: order.no, opts: { type: opts.type, date: opts.date, sign: opts.sign, biz: b } };
+        const body = { no: order.no, opts: { type: opts.type, date: opts.date, invNo: opts.invNo || undefined, sign: opts.sign, paid: isAdmin ? !!opts.paid : undefined, biz: b } };
         const headers = { "content-type": "application/json" };
-        if (q.get("id")) { let t = ""; try { t = sessionStorage.getItem("sris_admin") || ""; } catch (e) {} headers["x-admin-token"] = t; }
+        if (isAdmin) { let t = ""; try { t = sessionStorage.getItem("sris_admin") || ""; } catch (e) {} headers["x-admin-token"] = t; }
         const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 2500);
-        try { await fetch(q.get("id") ? "/api/admin/invoice-opts" : "/api/my/invoice-opts", { method: "POST", credentials: "same-origin", headers, body: JSON.stringify(body), signal: ctl.signal }); } catch (e) {} finally { clearTimeout(tm); }
+        let ok = false;
+        try { const r = await fetch(isAdmin ? "/api/admin/invoice-opts" : "/api/my/invoice-opts", { method: "POST", credentials: "same-origin", headers, body: JSON.stringify(body), signal: ctl.signal }); ok = r.ok; } catch (e) {} finally { clearTimeout(tm); }
+        return ok;
       }
       $("printBtn").addEventListener("click", async () => { await saveIssued(); window.print(); });
 
       $("bn").value = opts.biz.name; $("bg").value = opts.biz.gstin; $("bs").value = opts.biz.state; $("bp").value = opts.biz.phone; $("ba").value = opts.biz.address;
       sync(); render();
-      document.title = "Invoice " + (order.invoiceNo || order.no) + " | " + S.cfg.storeName;
+      document.title = "Invoice " + (opts.invNo || order.invoiceNo || order.no) + " | " + S.cfg.storeName;
       $("bar").hidden = false; $("panel").hidden = verify;
       if (verify) { $("backLink").hidden = true; $("ordersLink").hidden = true; $("printBtn").textContent = "Print / Save as PDF"; $("barHint").textContent = "This is the issued tax invoice (read-only). It can be printed or saved as PDF."; }
     })();
