@@ -77,7 +77,7 @@
     const rows = (o.lines || []).map((l) => {
       const cat = cfg.categories.find((c) => c.key === l.category) || {};
       const gst = Number(l.gst != null ? l.gst : cat.gst != null ? cat.gst : 18);
-      return { name: l.name, asin: l.asin || "", hsn: l.hsn || cat.hsn || "", qty: l.qty, unit: "PCS", gst, price: l.price };
+      return { name: l.name, hsn: l.hsn || cat.hsn || "", qty: l.qty, unit: "PCS", gst, price: l.price };
     });
     if (Number(o.shipping) > 0) rows.push({ name: "Shipping charges", hsn: cfg.shippingHsn, qty: 1, unit: "", gst: Number(cfg.shippingGst), price: Number(o.shipping) });
     rows.forEach((r) => {
@@ -184,6 +184,7 @@
         <img class="lg" src="images/logo.png" alt="" width="88" height="88" onerror="this.style.display='none'">
         <div class="cop">
           <h1>${esc(cfg.storeName)}</h1>
+          ${cfg.dealerTag ? `<div class="dealer">${esc(cfg.dealerTag)}</div>` : ""}
           <div class="ad">${esc(cfg.gstAddress)}</div>
           <div class="ct"><span><i>GSTIN</i> ${esc(cfg.gstin)}</span><span><i>Mobile</i> <a href="tel:+91${esc(String(cfg.invoicePhone || cfg.phoneDisplay).replace(/\D/g, "").slice(-10))}">${esc(cfg.invoicePhone || cfg.phoneDisplay)}</a></span><span><i>Email</i> <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></span><span><i>MSME</i> ${esc(cfg.udyam)}</span></div>
         </div>
@@ -204,7 +205,7 @@
       </div>
       <div class="tw"><table class="it">
         <thead><tr><th class="c">#</th><th>Description of Goods</th><th>HSN</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Taxable</th><th class="r">GST</th><th class="r">Amount</th></tr></thead>
-        <tbody>${c.rows.map((r, i) => `<tr><td class="c">${i + 1}</td><td class="dsc"><div class="in">${esc(r.name)}</div>${r.asin ? `<div class="asin">ASIN: <span>${esc(r.asin)}</span></div>` : ""}</td><td>${esc(r.hsn)}</td><td class="r">${r.qty}${r.unit ? " " + r.unit : ""}</td><td class="r">${num(r.rate)}</td><td class="r">${num(r.taxable)}</td><td class="r">${num(r.tax)}<small>(${r.gst}%)</small></td><td class="r">${num(r.amount)}</td></tr>`).join("")}</tbody>
+        <tbody>${c.rows.map((r, i) => `<tr><td class="c">${i + 1}</td><td class="dsc"><div class="in">${esc(r.name)}</div></td><td>${esc(r.hsn)}</td><td class="r">${r.qty}${r.unit ? " " + r.unit : ""}</td><td class="r">${num(r.rate)}</td><td class="r">${num(r.taxable)}</td><td class="r">${num(r.tax)}<small>(${r.gst}%)</small></td><td class="r">${num(r.amount)}</td></tr>`).join("")}</tbody>
         <tfoot><tr><td></td><td colspan="2"><b>SUBTOTAL</b></td><td class="r"><b>${c.qty}</b></td><td></td><td class="r"><b>${num(c.taxable)}</b></td><td class="r"><b>${num(c.tax)}</b></td><td class="r"><b>${num(c.total)}</b></td></tr></tfoot>
       </table></div>
       <div class="mid">

@@ -146,7 +146,7 @@
     if (t.dataset.edit) {
       const p = products.find((x) => String(x.id) === t.dataset.edit); if (!p) return;
       $("pId").value = p.id; $("pName").value = p.name; $("pCat").value = p.category; $("pPrice").value = p.price;
-      $("pMrp").value = p.mrp == null ? "" : p.mrp; $("pQty").value = p.stock_qty == null ? "" : p.stock_qty; $("pDesc").value = p.description || "";
+      $("pMrp").value = p.mrp == null ? "" : p.mrp; $("pQty").value = p.stock_qty == null ? "" : p.stock_qty; $("pDesc").value = (p.description || "").replace(/\s*ASIN[:\s]+[A-Z0-9]{10}\b\.?/gi, "").trim();
       photos = (p.images && p.images.length ? p.images : p.image ? [p.image] : []).slice(0, 5); renderPhotos();
       $("pStock").checked = !!p.in_stock; $("pFeat").checked = !!p.featured; $("pActive").checked = !!p.active;
       $("pFormTitle").textContent = "Edit product (ID " + p.id + ")"; $("pCancel").hidden = false; $("pErr").textContent = "";

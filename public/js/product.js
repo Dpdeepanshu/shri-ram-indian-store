@@ -9,7 +9,7 @@
 
   document.title = `${p.name} | ${cfg.storeName}`;
   const meta = document.querySelector('meta[name="description"]');
-  if (meta) meta.content = (p.description || p.name).slice(0, 150);
+  if (meta) meta.content = (S.cleanDesc(p.description) || p.name).slice(0, 150);
 
   const off = S.discount(p), oos = S.outOfStock(p) || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0);
   const imgs = (Array.isArray(p.images) && p.images.length ? p.images : [p.image || S.PLACEHOLDER]).slice(0, 5);
@@ -27,8 +27,7 @@
       <div class="price big"><b>${S.money(p.price)}</b>${off ? `<s>${S.money(p.mrp)}</s><span class="off">${off}% off</span>` : ""}</div>
       <p class="tax-note">Inclusive of all taxes</p>
       ${!oos && p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 5 ? `<p class="stock-left">Only ${p.stock_qty} left in stock</p>` : ""}
-      <p class="desc">${esc(p.description || "")}</p>
-      ${S.asinOf(p) ? `<p class="tax-note">ASIN: <b>${esc(S.asinOf(p))}</b></p>` : ""}
+      <p class="desc">${esc(S.cleanDesc(p.description))}</p>
       <ul class="points">
         ${cfg.codAvailable ? `<li>${S.icon("cash")}Cash on Delivery available</li>` : ""}
         <li>${S.icon("phone")}Pay by UPI or bank transfer</li>
@@ -60,7 +59,7 @@
   });
 
   try {
-    const ld = { "@context": "https://schema.org", "@type": "Product", name: p.name, description: p.description || p.name, category: S.categoryLabel(p.category),
+    const ld = { "@context": "https://schema.org", "@type": "Product", name: p.name, description: S.cleanDesc(p.description) || p.name, category: S.categoryLabel(p.category),
       image: imgs.map((u) => (/^https?:/.test(u) ? u : cfg.siteUrl.replace(/\/$/, "") + "/" + String(u).replace(/^\//, ""))),
       offers: { "@type": "Offer", url: pageUrl, priceCurrency: "INR", price: String(p.price), availability: oos ? "https://schema.org/OutOfStock" : "https://schema.org/InStock", itemCondition: "https://schema.org/NewCondition" } };
     const sc = document.createElement("script"); sc.type = "application/ld+json"; sc.textContent = JSON.stringify(ld); document.head.appendChild(sc);

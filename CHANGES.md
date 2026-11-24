@@ -97,3 +97,11 @@ Typo: "INDIA STORE" -> "INDIAN STORE" (header, logo alt).
 # Round 8 (merge + final audit)
 - "main" aur "updated" zip ko merge kiya: updated me main ki har cheez thi plus Round 6d / 7 / 7b, isliye koi conflict nahi tha. Koi code change nahi.
 - Final audit: sabhi 38 JS files ka syntax check pass, saare pages ka browser smoke test (koi JS error nahi), links / sitemap / products.json sahi, search (wallet black, hornbull zip, WH 1173) sahi chala, naya Order ID server ke check se match karta hai.
+
+# Round 7 (ASIN removed, jurisdiction, Authorised Dealer)
+
+- ASIN poori tarah hata diya: products.json / db/seed.sql se field aur description ka "ASIN: ..." text, product page, shop search, checkout, invoice (purane orders ke invoice par bhi nahi chhapta), config.js ka asinMap, server ke order lines.
+- Live database me migrate_005 chala tha to db/migrate_006_remove_asin.sql ek baar chalao. Jab tak na chalao, site description se ASIN apne aap chhupa deti hai aur admin edit box me bhi nahi dikhta.
+- Invoice terms: jurisdiction ab "Lakhimpur Kheri" (config.js jurisdictionCity).
+- "Authorised Dealer" tag: top bar, home page hero aur invoice header (store name ke neeche). Text config.js ke dealerTag se badalta hai, khaali chhodo to hat jata hai.
+

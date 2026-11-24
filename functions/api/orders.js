@@ -53,8 +53,7 @@ export async function onRequestPost({ request, env }) {
       if (!p.in_stock || (p.stock_qty !== null && p.stock_qty !== undefined && p.stock_qty <= 0)) { soldOut.push(p.name); continue; }
       if (p.stock_qty !== null && p.stock_qty !== undefined && qty > p.stock_qty) { soldOut.push(p.name + " (only " + p.stock_qty + " left)"); continue; }
       subtotal += p.price * qty;
-      const am = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || ""));
-      lines.push({ id: p.id, name: p.name, asin: am ? am[1].toUpperCase() : "", category: p.category, price: p.price, qty });
+      lines.push({ id: p.id, name: p.name, category: p.category, price: p.price, qty });
     }
     if (soldOut.length) return json({ error: "out of stock: " + soldOut.join(", ") }, 409);
     if (!lines.length) return json({ error: "no valid items" }, 400);

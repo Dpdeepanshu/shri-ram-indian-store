@@ -254,7 +254,7 @@
       no: orderNo(), ts: Date.now(), mode: sendMode === "db" ? "db" : "wa", payment: d.payment, name: d.name, phone: d.phone, address: d.address, city: d.city, state: d.state, pincode: d.pincode, notes: d.notes,
       subtotal: t.subtotal, shipping: t.shipping, total: t.total, invoiceNo: "",
       customerType: d.type, biz: d.type === "business" ? { name: d.bizName, gstin: d.gstin } : null,
-      lines: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, asin: S.asinOf(l.p), price: l.p.price, qty: l.qty, category: l.p.category }))
+      lines: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, qty: l.qty, category: l.p.category }))
     };
 
     // WhatsApp isi click me kholo (popup blocker se bachne ke liye); await ke baad popup block ho jaata hai

@@ -37,8 +37,7 @@ async function buildLines(env, items) {
     if (!Number.isInteger(qty) || qty < 1 || qty > 1000) return { error: "Quantity must be 1 or more" };
     const price = i.price === "" || i.price == null ? p.price : Number(i.price);
     if (!Number.isFinite(price) || price < 0 || price > 10000000) return { error: "Invalid price" };
-    const am = /ASIN[:\s]+([A-Z0-9]{10})\b/i.exec(String(p.description || ""));
-    lines.push({ id: p.id, name: p.name, asin: am ? am[1].toUpperCase() : "", category: p.category, price: Math.round(price), qty });
+    lines.push({ id: p.id, name: p.name, category: p.category, price: Math.round(price), qty });
   }
   return { lines };
 }
