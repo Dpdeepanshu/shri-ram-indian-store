@@ -152,7 +152,7 @@
     const c = compute(Object.assign({}, o, { state: supplyState }));
     const date = dmy(clampDate(opts.date || ymdIST(o.ts)));
     const place = supplyState || cfg.sellerState, pcode = stateCode(place);
-    const invNo = o.invoiceNo || o.no;
+    const invNo = String(opts.invNo || "").trim() || o.invoiceNo || o.no; // page me edit kiya hua number pehle
     const provisional = !o.invoiceNo;
     const sign = opts.sign !== false;
     const paid = !!opts.paid;
